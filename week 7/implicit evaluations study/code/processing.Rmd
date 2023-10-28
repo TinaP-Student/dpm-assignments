@@ -26,6 +26,7 @@ knitr::opts_chunk$set(message = FALSE,
 library(tidyverse)
 library(janitor) # for clean_names()
 library(stringr)
+library(kableExtra)
 
 ```
 
@@ -34,18 +35,17 @@ library(stringr)
 ```{r}
 
 # demographics
-data_demographics_raw <- read_csv("../../../data/AMP study/raw/data_demographics_raw.csv") |>
+data_demographics_raw <- read_csv("../../implicit evaluations study/data/raw/data_demographics_raw.csv") |>
   janitor::clean_names()
 
 # data_demographics_raw_messy <- read_csv("../../../data/AMP study/raw/data_demographics_raw_messy.csv", skip = 2) |>
 #   janitor::clean_names()
 
 # self report measure
-data_selfreport_raw <- read_csv("../../../data/AMP study/raw/data_selfreport_raw.csv") |>
-  janitor::clean_names()
+data_selfreport_raw <- read_csv("../../implicit evaluations study/data/raw/data_selfreport_raw.csv") |>janitor::clean_names()
 
 # affect attribution procedure
-data_amp_raw <- read_csv("../../../data/AMP study/raw/data_amp_raw.csv") |>
+data_amp_raw <- read_csv("../../implicit evaluations study/data/raw/data_amp_raw.csv") |>
   janitor::clean_names()
 
 ```
@@ -87,7 +87,7 @@ data_amp_performance_criteria <- data_amp_raw |>
 
 ```
 
-# Self-reports
+## Self-reports
 
 ```{r}
 
@@ -146,7 +146,7 @@ data_processed_before_exclusions <- data_processed_temp |>
 ```
 
 # Define master exclusions
-
+##Demographics
 ```{r}
 
 # create a master exclude_participant variable
@@ -162,6 +162,156 @@ data_processed <- data_processed_before_exclusions |>
                                          exclude_amp_performance == "exclude" ~ "exclude",
                                          exclude_duplicate_data == "exclude" ~ "exclude",
                                          TRUE ~ "include"))
+
+```
+
+##WEEK7 Selfreports
+- Add exclusions for data completeness for the self reports. i.e., master exclude variable should also be set to "exclude" if they don't have responses for the three individual self report item.
+
+### just data_selfreport_scored
+I wasn't sure which of the data sets to take, so I made two versions where I exclude the data. 
+Both are pretty the same.
+``` {r}
+
+#I don't know if that will make the process easier for you, but you can also read in the finished datasets otherwise
+data_selfreport_scored_exclusions <- read_csv("../../implicit evaluations study/data/week7/data_selfreport_scored_exclusions.csv")
+
+
+data_selfreport_scored_exclusions <- data_selfreport_scored|>
+  mutate(exclude_participant = case_when(is.na(positive) ~ "exclude",
+                                         is.na(prefer) ~ "exclude",     
+                                         is.na(like) ~ "exclude",
+                                         is.na(mean_evaluation) ~ "exclude",
+                                         TRUE ~ "include"))
+
+#for me to look at the stuff
+
+#data_selfreport_scored|>
+#  count(like)
+#  count(prefer) <- hat ein NA
+#    count(positive) <- hat ein NA
+#    count(mean_evaluation)
+#  count(subject) |>
+#  mutate(exclude_duplicate_data = if_else(n > 1, "exclude", "include"))|>  # --> no duplicates
+#  kable() |>
+#  kable_classic(full_width = FALSE)
+
+
+#write_csv(data_selfreport_scored_exclusions, "../../implicit evaluations study/data/week7/data_selfreport_scored_exclusions.csv")
+
+```
+
+### combined data_selfreport
+Both approaches exclude the same people, it is basically the same, only this dataset is formatted differently and has additional information.
+``` {r}
+
+data_selfreport_exclusions <- read_csv("../../implicit evaluations study/data/week7/data_selfreport_exclusions.csv")
+
+
+#preparation - need this for the full_join!
+#practically the same as before, only I have selected 3 column
+data_selfreport_scored_to_combine <- data_selfreport_scored|>
+  mutate(ex_clude_participant = case_when(is.na(positive) ~ "exclude",
+                                         is.na(prefer) ~ "exclude",     
+                                         is.na(like) ~ "exclude",
+                                         is.na(mean_evaluation) ~ "exclude",
+                                         TRUE ~ "include"))|>
+  select(subject, mean_evaluation, ex_clude_participant)
+
+
+
+#Preparation
+data_selfreport_raw_exclusions <- data_selfreport_raw|>
+  filter(trialcode %in% c("like", "prefer", "positive"),
+         response != "Ctrl+'B'")|>
+  rename(item = trialcode) |>
+  mutate(response = as.numeric(response))
+
+
+data_selfreport_exclusions <- full_join(data_selfreport_raw_exclusions,
+                                        data_selfreport_scored_to_combine
+                                        ,  by = "subject")|>
+  mutate(exclude_participant = case_when(is.na(response) ~ "exclude", #actually not necassary lol
+                                        ex_clude_participant == "exclude" ~ "exclude",
+                                         TRUE ~ "include"))|>
+  select(-ex_clude_participant)
+
+
+
+#all Participants have tree responses, except the one
+table(data_selfreport_exclusions$subject)|>
+    kable() |>
+  kable_classic(full_width = FALSE)
+
+
+#write_csv(data_selfreport_exclusions, "../../implicit evaluations study/data/week7/data_selfreport_exclusions.csv")
+
+```
+
+
+##WEEK7 AMP
+- Add exclusions for the AMP task. It should have the "correct" number of trials. 
+ I think it's 72 :) (with practice -> 82)
+How to know what number is the correct number of trials? Think about how to explore this in your data with code. Write a very brief description of what you tried, what worked or didn't, and what you decided was the correct number of trials as a response to this assignment. 
+``` {r}
+
+data_amp_after_exclude <- read_csv("../../implicit evaluations study/data/week7/data_amp_after_exclude.csv") |>
+  select(-1) 
+
+#Instead of a full_join with data_amp_raw and data_amp_performance_criteria, I made a new dataset
+#I could have excluded more columns, but wasn't sure if we could still use them later, so some "selects" are with #.
+data_amp_before_exclude <- data_amp_raw|>
+  filter(blockcode != "practice", trialcode != "instructions") |> 
+  mutate(latency_prob = if_else(latency < 100, TRUE, FALSE),
+         proportion_fast_trials_amp = mean(latency_prob, .by = subject),
+         exclude_amp_performance = ifelse(proportion_fast_trials_amp > 0.10, "exclude", "include"), .by = subject) |>
+  select(-blockcode) #-primestim, -targetstim
+
+
+#the count of how many Trials are necessary
+participant_count <- table(data_amp_before_exclude$subject)
+
+
+#excluded also the duplicate!
+data_amp_after_exclude <- data_amp_before_exclude|>
+     mutate(participant_count = participant_count[as.character(subject)], 
+            exclude_participant = case_when(exclude_amp_performance == "exclude" ~ "exclude",
+                                            participant_count < 72  ~ "exclude",
+                                            participant_count > 72  ~ "exclude",
+                                            TRUE ~ "include"))
+
+
+#count trials without practice  
+table(data_amp_before_exclude$subject)  |>
+  kable() |>
+  kable_classic(full_width = FALSE)
+
+#count trial with practice
+#table(data_amp_raw$subject)  |>
+#  kable() |>
+#  kable_classic(full_width = FALSE)
+
+#a diffrent attempt to count, but practicly the same
+#data_amp_before_exclude|>
+#  count(subject)|>
+#  kable() |>
+#  kable_classic(full_width = FALSE)
+
+#just looking on numbers :) 2_73
+#data_amp_after_exclude|>
+#  count(blocknum_and_trialnum)
+
+# ... an attempt, but not relly a smart attempt
+#data_amp_before_exclude |>
+#  select(subject, blocknum_and_trialnum) |>
+#  pivot_wider(names_from = blocknum_and_trialnum,
+#              values_from = subject)  |>
+#    kable() |>
+#  kable_classic(full_width = FALSE)
+
+
+#write.csv(data_amp_after_exclude,"../../implicit evaluations study/data/week7/data_amp_after_exclude.csv")
+
 
 ```
 
