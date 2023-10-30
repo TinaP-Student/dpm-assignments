@@ -20,6 +20,8 @@ knitr::opts_chunk$set(message = FALSE,
 # disable scientific notation
 options(scipen = 999) 
 
+
+
 ```
 
 # Instructions
@@ -56,10 +58,13 @@ library(tidyr)
 library(knitr)
 library(kableExtra)
 library(janitor)
+library(stringr)
+
 
 ```
 
 # Basics
+
 
 ## read_csv 
 
@@ -71,20 +76,21 @@ vs. `read.csv()`
 - Relative path (good): "../data/data_raw.csv"
 
 When using relative paths: "../" means up one directory level, whereas "directory_name/" goes down one directory level.
+../../ <-- wären jetzt zwei levels
 
 Relative paths will work on other machines, where absolute paths will break. 
 
 Relative paths only work in .Rmd files and not .R files. Even without RMarkdown's other benefits, this makes them worth using.
 
-Useful arguments:
-
-- `skip` can be used to skip the first N rows while reading the data
+"skip = 2" argument - entfernt zum Beispiel die ersten zwei Reihen/Headers
 
 ```{r}
+1 + 1 
 
 
+# readr::read_csv(blabla, skip= n)
 
-# readr::read_csv()
+
 
 ```
 
@@ -97,7 +103,8 @@ Useful arguments:
 ```
 
 ## colnames & dput
-
+wenn wir zum beispiel die Namen der Col anschauen wollen
+or ob clean_name funktioniert hat
 ```{r}
 
 # colnames()
@@ -108,26 +115,67 @@ Useful arguments:
 
 # Wrangling
 
+## data
+Loads specified data sets, or list the available data sets.
+``` {r}
+
+# utils::data()
+data(ChickWeight)
+
+ #funny to know
+ChickWeight    #Weight versus age of chicks on
+               #different diets
+HairEyeColor   #Hair and Eye Color of
+               #Statistics Students
+Titanic        #Survival of passengers on the
+               #Titanic
+ToothGrowth    #The Effect of Vitamin C on
+               #Tooth Growth in Guinea Pigs
+band_members   #Band membership
+starwars       #Starwars characters
+
+``` 
+
 ## the pipe: `%>%` or `|>`
+creats less junk 
+vereinfacht den Quellcode zu lesen - und man muss nicht so verschachtelt "schreiben"
 
 ```{r}
 
-# %>%
+# %>% old
 
-# |>
+# |>   new
+
+#geht jetzt sozusagen von oben nach unten
+starwars_humans1<- starwars |>
+  select(, name, species) |>
+  filter(, species == "Human")
+
+
+#statt      
+starwars_humans2 <- filter(select(starwars, name, species), species == "Human")
+
 
 ```
 
-## round_half_up
+## round_half_up 
+... Wenn die Dezimalstelle kleiner als 0,5 ist, wird die Zahl abgerundet.
+Wenn die Dezimalstelle gleich oder größer als 0,5 ist, wird die Zahl aufgerundet.
 
+wenn nur round kann es zu Fehlern kommen, da es anders gerundet wird je nachdem (hat sich bei grossen Datensätzen als effektiver erwiesen)
 ```{r}
 
 # janitor::round_half_up()
 
+zahlen <- c(1.4, 1.5, 1.5,1.5, 1.5, 2.4, 2.6)
+
+round_half_up(zahlen)
+
+
 ```
 
 ## clean_names
-
+macht die Namen hübscher aka entfernt komische Zeichen und ersetzt Punkte mit '_' 
 ```{r}
 
 # janitor::clean_names()
@@ -135,65 +183,139 @@ Useful arguments:
 ```
 
 ## filter
-
+Die Funktion filter() wird verwendet, um einen Datenrahmen zu unterteilen und alle Zeilen zu behalten, die Ihre Bedingungen erfüllen. Beachten Sie, dass die Zeile gelöscht wird, wenn eine Bedingung den Wert NA ergibt.
+filter(.data, ..., 
+       .by = NULL,  #a selection of columns to group by for just this operation (alter. -> group_by()). 
+       .preserve = FALSE) #Relevant, wenn die .data-Eingabe gruppiert wird...
 ```{r}
 
 # dplyr::filter()
 
+library(dplyr)
+filter(ChickWeight, Time == "10", ) #hier habe ich den Dataset nach den Antworten 10 gefiltert
+filter(ChickWeight, !is.na(Chick)) # um fehlende Werte auszufiltern
+
+```
+
+## mtcars
+```{r}
+#mtcars <- dataset die R uns zur verfügung gibt
+data(mtcars) #um es in unser environment zu haben 
+mtcars
+
 ```
 
 ## slice
-
-Slice is for retaining or dropping rows from a df.
-
-We might use it just after reading in files if there are junk rows at the header.
+slice is for retaining or dropping rows from a ds
+We might use it just after reading in files if there are junk rows at the header
+Alternative:  wir benützen das *skip* argument bei read.csv 
 
 ```{r}
 
 # dplyr::slice()
+?dplyr::slice()
 
-mtcars # this should have 32 rows
-slice(mtcars, 2:n()) # this should have 31 rows
+mtcars #das hat 32 Reihen
+slice(mtcars, 2:n()) #von Reihe 2 bis... erho jetzt 31 Reihen
+
+
 
 ```
 
 ## select
-
+ähnlich wie slice, nur geht es hier um die Colums und nicht um die Rows
+Select (and optionally rename) variables in a data frame
 ```{r}
 
 # dplyr::select()
+library(dplyr)
+select(ChickWeight, Diet) #zeigt nur die Diet Spalte an
+select(starwars, species) #zeigt nur die Spalte mit den Spezien an
 
 ```
 
 ## rename
+wenn man z.B. (Reihen)namen ändern möchte
+andere Option: falls man Namen einfach hübscher machen will -> "janitor::clean_names()" einfach hinter daten einlesen reinfetzen 
 
 ```{r}
 
 # dplyr::rename()
+library(dplyr)
+rename(ChickWeight, ChickMcNugget = Chick)    #new_name = old_name *
 
 ```
 
 ## mutate
+... erzeugt neue Spalten, die Funktionen von bestehenden Variablen sind. Sie kann auch Spalten ändern (wenn der Name mit einer vorhandenen Spalte übereinstimmt) und löschen (indem ihr Wert auf NULL gesetzt wird).
+...wird verwendet, um neue Variablen in einem Datensatz zu erstellen oder bestehende Variablen zu verändern.
 
 ```{r}
 
 # dplyr::mutate()
 
+library(dplyr)
+mutate(ChickWeight, "weight in kg" = weight/1000,.after = weight) 
+#neue Spalte hinzugefügt, die nach "weight" aufgeführt sein soll
+
+
 ```
 
 ## case_when
+... ist nützlich, wenn Sie komplexere bedingte Transformationen auf Dataframes durchführen müssen, da es Ihnen ermöglicht, mehrere Bedingungen in einer gut lesbaren Weise zu kombinieren.
 
+TRUE:In case_when wird TRUE verwendet, um anzugeben, dass die zugehörige Aktion ausgeführt wird, wenn keine der vorherigen Bedingungen als wahr ausgewertet wird.
+Wenn keine der vorherigen Bedingungen erfüllt ist, wird die in TRUE spezifizierte Aktion ausgeführt.
+
+.default: ist eine alternative Möglichkeit, einen Standardwert in case_when festzulegen.
+Es kann anstelle von TRUE verwendet werden, um den Standardwert anzugeben, der zurückgegeben wird, wenn keine der vorherigen Bedingungen erfüllt ist.
+Der Vorteil von .default besteht darin, dass es den Code lesbarer machen kann, insbesondere wenn Sie mehrere Bedingungen in case_when haben. Sie können .default verwenden, um klar anzugeben, was als Standardwert verwendet werden soll, wenn keine der Bedingungen erfüllt ist.
 ```{r}
 
 # dplyr::case_when() # instead of ifelse()
 
+
+#hier wird mit mutate eine neue Kategorie gemacht!
+case_star <- starwars |>
+  select(name:mass, gender, species) |>
+  mutate(
+    type = case_when(
+      species == "Droid" ~ "robot",
+      .default = "other"),
+    type2 = case_when(
+      height < 200 | mass < 200 ~ "small",
+      TRUE ~ "other"))
+
+
+
 ```
 
-## summarize
+## summarize (& na.rm)
+...wird verwendet, um Daten zu aggregieren und Zusammenfassungen zu erstellen. Sie gruppiert normalerweise Daten nach bestimmten Variablen und führt dann Berechnungen auf den Gruppen durch, um aggregierte Werte zu erstellen. Das Ergebnis ist normalerweise ein Datensatz mit weniger Zeilen als der ursprüngliche Datensatz.
 
+na.rm ist ein Argument (Kurzform von "na.remove") in vielen Funktionen in R, das dazu dient, den Umgang mit fehlenden Werten (NA-Werten) in den Daten zu steuern. 
 ```{r}
 
 # dplyr::summarize() 
+
+iris |>
+  summarise(mean_pwidth = mean(Petal.Width))
+
+iris |>
+  group_by(Species) |>
+  summarise(mean_pwidth = mean(Petal.Width, na.rm = TRUE))
+#mit group_by werden die dann einzeln gruppiert
+
+```
+
+## lapply
+...ie zur Anwendung einer Funktion auf Elemente einer Liste oder eines Vektors verwendet wird. "lapply" steht für "list apply", da es speziell für Listen verwendet wird.
+
+```{r}
+
+list <- c(1,2,3,4,5,6)
+
+lapply(list, sum)
 
 ```
 
@@ -214,11 +336,18 @@ slice(mtcars, 2:n()) # this should have 31 rows
 ```
 
 ## group_by
+...wird für die Gruppierung von Daten in einem Datenframe verwendet. Sie ist eine Schlüsselfunktion für die Datenmanipulation, da sie es ermöglicht, Daten in Gruppen aufzuteilen, um dann Aggregatfunktionen wie summarize, mutate, filter, und andere auf diese Gruppen anzuwenden. 
 
 ```{r}
 
 # dplyr::group_by() # or ".by =" 
 
+iris |>
+  group_by(Species) |>
+  summarise(mean_pwidth = mean(Petal.Width))
+
+iris |>
+  summarise(mean_pwidth = mean(Petal.Width), .by = Species)
 ```
 
 ## rowwise
@@ -246,7 +375,25 @@ slice(mtcars, 2:n()) # this should have 31 rows
 ```
 
 ## joins
+full_join:
 
+Ein full_join (Vollverknüpfung) kombiniert zwei Dataframes basierend auf einer oder mehreren übereinstimmenden Spalten. Dabei werden alle Zeilen aus beiden Dataframes beibehalten, und diejenigen, die in einem der Dataframes fehlen, werden mit NA-Werten aufgefüllt.
+Das Ergebnis enthält alle Zeilen aus beiden Dataframes, unabhängig davon, ob eine Übereinstimmung in den Verknüpfungsspalten vorhanden ist oder nicht.
+left_join:
+
+Ein left_join (linker Join) kombiniert zwei Dataframes basierend auf den Verknüpfungsspalten und behält alle Zeilen aus dem ersten (linken) Dataframe bei. Die Zeilen, die im zweiten (rechten) Dataframe fehlen, werden mit NA-Werten aufgefüllt.
+Das Ergebnis enthält alle Zeilen aus dem linken Dataframe und nur die übereinstimmenden Zeilen aus dem rechten Dataframe.
+semi_join:
+
+Ein semi_join (halber Join) gibt die Zeilen aus dem ersten Dataframe zurück, die in beiden Dataframes vorhanden sind. Es behält nur die Zeilen aus dem linken Dataframe, die im rechten Dataframe übereinstimmen.
+semi_join ist nützlich, um eine Teilmenge von Zeilen aus dem linken Dataframe zu extrahieren, die in einem anderen Dataframe vorhanden sind, ohne die zusätzlichen Informationen aus dem rechten Dataframe zu berücksichtigen.
+
+Kurz:
+full_join <- behält alles kinda
+left_join <- es orientiert sich an x Datasatz
+right_join <- orientiert sich an y Datasatz, was nur in x ist, wird verworfen
+semi_join <- was x und y miteinander teilen, das wird behalten, alles andere wird "verworfen"
+es gibt auch anti und self joins -> ask google :)
 ```{r}
 
 # dplyr::full_join()
@@ -259,15 +406,40 @@ slice(mtcars, 2:n()) # this should have 31 rows
 
 # dplyr::semi_join()
 
+ImpChick <- ChickWeight |>
+  mutate(Chick2 = case_when(
+    Chick == 1 ~ "Important_One",
+    .default = "not_Important"))
+
+ChickenJoin <- full_join(ImpChick, ChickWeight,
+                         by = c("weight", "Time","Diet", "Chick"))|>#ohne by, werden die Sachen sonst dupliziert 
+  select("weight", "Time", "Diet", "Chick", "Chick2") #mit select reihenfolge geändert
+  
+  
+
 ```
 
 ## pivots
+Um Rows/Colums umzugestalten
 
 ```{r}
 
+#Preperation aka Vorbereitung!
+
 # tidyr::pivot_wider()
+#pivot_wider(data_age_gender,
+ #                   id_cols = "ID", #bleibt unverändert
+  #                  names_from = "age_gender", #
+   #                 values_from = "Responses") #
+
 
 # tidyr::pivot_longer()
+#umkehr
+#pivot_longer(dat_wide_age_gender, 
+ #   cols = -ID, # bleibt unverändert
+  #  names_to = "age_gender", #Kategoriennamen werden zu "Antworten"
+   # values_to = "Responses") #Antworten in zwei Spalten werden in eine Spalte überführt
+
 
 ```
 
@@ -295,13 +467,34 @@ slice(mtcars, 2:n()) # this should have 31 rows
 
 ```
 
+## getignore
+
+``` {r}
+
+
+
+```
+
+## regex
+
+``` {r}
+
+
+
+```
+
+
 # Printing tables
 
+## kable
+... nnen Sie Tabellen in verschiedenen Ausgabeformaten erstellen, darunter HTML, PDF, Markdown und mehr. Die Funktion ermöglicht die Anpassung des Tabellenformats, das Hinzufügen von Überschriften, Fußnoten und weiteren Tabelleneigenschaften.
 ```{r}
 
 # mtcars |> # example data
-#   knitr::kable() |> # print a nicer looking table
-#   kableExtra::kable_classic(full_width = FALSE) # print nicer again
+ #  knitr::kable() |> # print a nicer looking table
+# kableExtra::kable_classic(full_width = FALSE) # print nicer again
+
+
 
 ```
 
@@ -320,6 +513,5 @@ Other packages you may need for wrangling which aren't covered here:
 sessionInfo()
 
 ```
-
 
 
