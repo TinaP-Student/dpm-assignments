@@ -155,28 +155,35 @@ TODO add descriptive plots for self-reported evaluations
 TODO add descriptive stats for AMP
 
 ```{r}
-# overall mean amp_scores
-data_mean_amp_scores <- data_processed_after_exclusions |>
-  summarise(Mean = mean(amp_score, na.rm = TRUE),
-            SD = sd(amp_score, na.rm = TRUE)) |>
-  mutate(group = "Full sample")
-
 
 # mean amp_scores by gender category
 data_amp_scores_gender <- data_processed_after_exclusions |>
   group_by(group = gender) |>
   summarise(Mean = mean(amp_score, na.rm = TRUE),
-            SD = sd(amp_score, na.rm = TRUE))
+            SD = sd(amp_score, na.rm = TRUE))|>
+  left_join(data_processed_after_exclusions |>
+  count(group = gender), by = "group")
+
+
+
+# overall mean amp_scores
+data_mean_amp_scores <- data_processed_after_exclusions |>
+  summarise(Mean = mean(amp_score, na.rm = TRUE),
+            SD = sd(amp_score, na.rm = TRUE))|>
+  mutate(group = "Full sample")|>
+  cross_join(data_amp_scores_gender|>
+  summarise(n = sum(n)))
+
 
 
 # combine 
 
 bind_rows(data_mean_amp_scores, data_amp_scores_gender) |>
-  select(subset = group, Mean, SD) |> 
+  select(subset = group, Mean, SD, n) |> 
   mutate(subset = stringr::str_to_sentence(subset)) |> 
   mutate_if(is.numeric, round_half_up, digits = 4) |>
   kable() |>
-  add_header_above(header = c(" " = 1, "AMP Scores" = 2)) |>
+  add_header_above(header = c(" " = 1, "AMP Scores" = 3)) |>
   kable_classic(full_width = FALSE)
 
 
