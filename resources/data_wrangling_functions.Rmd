@@ -59,6 +59,7 @@ library(knitr)
 library(kableExtra)
 library(janitor)
 library(stringr)
+library(ggplot2)
 
 
 ```
@@ -260,6 +261,21 @@ mutate(ChickWeight, "weight in kg" = weight/1000,.after = weight)
 
 
 ```
+
+##factor
+
+```{r}
+
+#factor(x = character(), levels, labels = levels,
+#       exclude = NA, ordered = is.ordered(x), nmax = NA)
+
+
+z <- factor(LETTERS[3:1], ordered = FALSE)
+
+factor(z, exclude = "C")
+
+```
+
 
 ## case_when
 ... ist nützlich, wenn Sie komplexere bedingte Transformationen auf Dataframes durchführen müssen, da es Ihnen ermöglicht, mehrere Bedingungen in einer gut lesbaren Weise zu kombinieren.
@@ -478,6 +494,107 @@ Um Rows/Colums umzugestalten
 ## regex
 
 ``` {r}
+
+
+
+```
+
+# GGplots
+## layers
+~ ähnlich wie in Krita oder Procreate
+
+Layers ermöglichen es Ihnen, diese Komponenten in einer flexiblen Art und Weise zu kombinieren, indem Sie sie in einer Reihenfolge hinzufügen. Jede Layer fügt dem Plot eine zusätzliche visuelle Informationsebene hinzu. Sie können beliebig viele Geoms, Stats, Facets und Anpassungen hinzufügen, um einen komplexen Plot zu erstellen.
+
+werden mit " + " hinzugefügt
+
+
+## aesthetics
+Aesthetics beziehen sich auf die visuellen Eigenschaften eines Grafikelements, wie Farbe, Form, Größe, Position und Transparenz. Sie ermöglichen es, Daten in visuelle Merkmale umzuwandeln, um sie auf einer Grafik darzustellen. Aesthetics sind integraler Bestandteil der Mapping-Funktion in ggplot2 und werden in der aes()-Funktion definiert.
+
+aes( x= Achsenname, y = Achsenname, fill = evt. zusätzliche Variable)
+```{r}
+
+#bei fill, werden nur die Daen genommen, um sie besser abzubilden -> Bsp:
+
+
+#scale_fill_brewer(palette = "Dark2",
+#                  name = "Group",
+#                  labels = c("Bilingual", "Monobilingual"))
+
+
+#fügt man als Layel an
+
+
+
+```
+## themes
+... ermöglichen, das Erscheinungsbild und das Verhalten Ihrer Grafiken anzupassen. Sie können theme verwenden, um verschiedene Aspekte Ihres Plots, wie Achsenbeschriftungen, Hintergrundfarben, Gitterlinien und vieles mehr anzupassen.
+
+theme_set(dann das theme) <- damit man es ned einzeln immer schreiben muss , setzt es global
+
+
+theme_bw(): a variation on theme_grey() that uses a white background and thin grey grid lines.
+
+theme_linedraw(): a theme with only black lines of various widths on white backgrounds, reminiscent of a line drawing.
+
+theme_light(): similar to theme_linedraw() but with light grey lines and axes, to direct more attention towards the data.
+
+theme_dark(): the dark cousin of theme_light(), with similar line sizes but a dark background. Useful to make thin coloured lines pop out.
+
+theme_minimal(): a minimalistic theme with no background annotations.
+
+theme_classic(): a classic-looking theme, with x and y axis lines and no gridlines.
+
+theme_void(): a completely empty theme.
+```{r}
+
+#Bsp.
+p1 <- ggplot(mtcars, aes(wt, mpg)) +
+  geom_point() +
+  labs(title = "Fuel economy declines as weight increases") +
+  theme_dark()
+
+p1
+
+
+```
+## facets
+Facets in ggplot2 sind eine Möglichkeit, Ihre Daten in Untergrafiken aufzuteilen, um verschiedene Aspekte oder Gruppen in Ihren Daten gleichzeitig zu visualisieren.
+facet_wrap() und facet_grid()
+```{r}
+
+#ggplot2::
+
+
+
+```
+
+##geom_bar
+or geom_histogram
+
+binwidth = zahl <- wie breit die Abstände sein sollten
+fill = "white" <- in welcher Farbe die Bars sein solletn
+colour = "black" <- die outlines der Bars
+```{r}
+
+
+
+
+
+```
+
+## scale_x_discrete or y_continuous
+einzelne layers kinda
+discrete für Variablen und continous für weiterlaufende Sachen (bsp. Zahlen)
+Bsp.:
++ scale_x_discrete(name = "LOL", labels = c("L", "O", "L")) 
++ scale_y_continuous(name = "Dunno", breaks = c(0,10,20,30))
+
+labels ...controls the names of the conditions with a discrete variable
+breaks ...controls the thick marks on the axis
+```{r}
+
+
 
 
 
