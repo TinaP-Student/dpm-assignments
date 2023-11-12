@@ -500,6 +500,166 @@ Um Rows/Colums umzugestalten
 ```
 
 # GGplots
+https://r-graph-gallery.com/38-rcolorbrewers-palettes.html
+how to make animations and co
+
+##How to generate Farbcodes with an Image
+https://color.adobe.com/de/create/color-wheel
+
+##COLORS
+https://www.datanovia.com/en/blog/top-r-color-palettes-to-know-for-great-data-visualization/ <- some cool choices
+
+virdis: virdis, magma, plasma, inferno
+Key functions:
+
+scale_color_viridis(): Change the color of points, lines and texts
+scale_fill_viridis(): Change the fill color of areas (box plot, bar plot, etc)
+viridis(n), magma(n), inferno(n) and plasma(n): Generate color palettes for base plot, where n is the number of colors to returns.
+
+more charts: https://www.nceas.ucsb.edu/sites/default/files/2020-04/colorPaletteCheatsheet.pdf
+```{r}
+
+```
+
+###Virdis
+
+virdis: virdis, magma, plasma, inferno
+Key functions:
+
+scale_color_viridis(): Change the color of points, lines and texts
+scale_fill_viridis(): Change the fill color of areas (box plot, bar plot, etc)
+viridis(n), magma(n), inferno(n) and plasma(n): Generate color palettes for base plot, where n is the number of colors to returns.
+```{r}
+
+install.packages("viridis")  # Install
+library("viridis")  # Load
+
+barplot(1:10, col = viridis(10))
+
+
+
+```
+
+###RColorBrewer palettes
+The package contains 3 types of color palettes: sequential, diverging, and qualitative.
+
+Sequential palettes (first list of colors), which are suited to ordered data that progress from low to high (gradient). The palettes names are : Blues, BuGn, BuPu, GnBu, Greens, Greys, Oranges, OrRd, PuBu, PuBuGn, PuRd, Purples, RdPu, Reds, YlGn, YlGnBu YlOrBr, YlOrRd.
+Qualitative palettes (second list of colors), which are best suited to represent nominal or categorical data. They not imply magnitude differences between groups. The palettes names are : Accent, Dark2, Paired, Pastel1, Pastel2, Set1, Set2, Set3.
+Diverging palettes (third list of colors), which put equal emphasis on mid-range critical values and extremes at both ends of the data range. The diverging palettes are : BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn, Spectral
+
+```{r}
+library(RColorBrewer)
+display.brewer.all()
+
+barplot(1:10, col = brewer.pal(n = 10, name = "Paired"))+ scale_color_brewer(palette = "Dark2")
+
+
+
+```
+
+
+###Grey color palettes
+Key functions:
+
+scale_fill_grey() for box plot, bar plot, violin plot, dot plot, etc
+scale_colour_grey() for points, lines, etc
+```{r}
+
+#Boxplot
+x + scale_fill_grey(start = 0.8, end = 0.2) 
+
+# Scatter plot
+x + scale_color_grey(start = 0.8, end = 0.2)
+
+
+```
+###Scientific journal color palettes
+The R package ggsci contains a collection of high-quality color palettes inspired by colors used in scientific journals, data visualization libraries, and more.
+see more: https://www.datanovia.com/en/blog/top-r-color-palettes-to-know-for-great-data-visualization/#viridis-color-palettes
+
+```{r}
+
+library("ggplot2")
+install.packages("ggsci")  
+library("ggsci")
+# Change area fill color. JCO palette
+ggplot(iris, aes(Species, Sepal.Length)) +
+  geom_boxplot(aes(fill = Species)) +
+  scale_fill_jco()+
+  theme_classic() +
+  theme(legend.position = "top")
+
+# Change point color and the confidence band fill color. 
+# Use tron palette on dark theme
+ggplot(iris, aes(Sepal.Length, Sepal.Width)) +
+  geom_point(aes(color = Species)) +
+  geom_smooth(aes(color = Species, fill = Species)) + 
+  scale_color_tron()+
+  scale_fill_tron()+
+  theme_dark() +
+  theme(
+    legend.position = "top",
+    panel.background = element_rect(fill = "#2D2D2D"),
+    legend.key = element_rect(fill = "#2D2D2D")
+    )
+
+
+#Base Plots
+par(mar = c(1, 3.5, 1, 1))
+barplot(1:10, col = pal_jco()(10))
+
+```
+
+###Wes Anderson color palettes
+
+```{r}
+install.packages("wesanderson")
+library(wesanderson)
+names(wes_palettes)
+
+
+#The key R function in the package, for generating a vector of colors, is
+wes_palette(name, n, type = c("discrete", "continuous"))
+
+#name: Name of desired palette
+#n: Number of colors desired. Unfortunately most palettes now only have 4 or 5 colors.
+#type: Either “continuous” or “discrete”. Use continuous if you want to automatically interpolate between colours.
+
+
+
+# Gradient color
+pal <- wes_palette("Moonrise1", 100, type = "continuous")
+ggplot(heatmap, aes(x = X2, y = X1, fill = value)) +
+  geom_tile() + 
+  scale_fill_gradientn(colours = pal) + 
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) + 
+  coord_equal()
+
+
+#base plot
+barplot(1:10, col = wes_palette("Moonrise2", 10, type = "continuous"))
+
+```
+
+###R base color palettes
+There are 5 R base functions that can be used to generate a vector of n contiguous colors: rainbow(n), heat.colors(n), terrain.colors(n), topo.colors(n), and cm.colors(n).
+
+```{r}
+
+barplot(1:5, col=rainbow(5))
+# Use heat.colors
+barplot(1:5, col=heat.colors(5))
+# Use terrain.colors
+barplot(1:5, col=terrain.colors(5))
+# Use topo.colors
+barplot(1:5, col=topo.colors(5))
+# Use cm.colors
+barplot(1:5, col=cm.colors(5))
+
+```
+
+
 ## layers
 ~ ähnlich wie in Krita oder Procreate
 
