@@ -521,6 +521,16 @@ more charts: https://www.nceas.ucsb.edu/sites/default/files/2020-04/colorPalette
 
 ```
 
+###Aliens Recommendation <3
+
+```{r}
+braun: "#826c65" , "#a6948b"
+grau: "#c3c2c1"
+rot: "#e89d97", "#fa9b9c"
+blau: "#9da2b7", "#a4adb7"
+
+```
+
 ###Virdis
 
 virdis: virdis, magma, plasma, inferno
