@@ -41,7 +41,14 @@ library(ggrepel)
 library(ggmagnify)
 library(ggridges)
 library(patchwork)
+library(easystats)
 
+
+```
+#SET.SEED
+
+```{r}
+set.seed(123) 
 
 ```
 
@@ -269,52 +276,34 @@ More complex plots:
 
 Scatter plots with axial histograms using ggExtra: https://cran.r-project.org/web/packages/ggExtra/vignettes/ggExtra.html
 
-\TODO add axial histograms to a scatter plot. Split both the scatter plot and the histograms by gender.
+
+
+\TODO add axial histograms to a scatter plot. In a single plot, present different regression lines split by gender, and separate axial histograms for each gender.
 
 ```{r}
 #install.packages("ggExtra")
 
-#I know ugly colours, but somewhat i like it :''D
-
-p_all_gender <- ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, colour = gender)) +
+#scatter Plots, with regression lines, without histograms - each single plot 
+ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, colour = gender)) +
   geom_point() +
-     scale_colour_manual(values = c("female"="#996699","male" = "#777777","nonbinary" =  "#e89d97"))
-MARG_all_gender <-ggMarginal(p_all_gender, groupColour = TRUE, groupFill = TRUE)
-print(MARG_all_gender)
+  scale_colour_manual(values = c("female"="#996699","male" = "#777777","nonbinary" =  "#e89d97"))+
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(gender ~ ., scales = "free_y", space = "free_y")  #makes multiple plots
 
-#FEMALE
-data_p_a_e_female <- data_processed_after_exclusions |> 
-  filter(gender == "female")
-
-p_female_gender <- ggplot(data_p_a_e_female, aes(AMP_score, mean_evaluation, colour = gender)) +
+#scatter Plots, with regression lines, without histograms - one plot 
+fr_MARG<- ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, colour = gender)) +
   geom_point() +
-  scale_colour_manual(values = "#996699")
-MARG_p_female_gender <- ggMarginal(p_female_gender, groupColour = TRUE, groupFill = TRUE)
-print(MARG_p_female_gender)
+  scale_colour_manual(values = c("female"="#996699","male" = "#777777","nonbinary" =  "#e89d97"))+
+  geom_smooth(method = "lm", se = FALSE)
+print(fr_MARG)
 
-#MALE
-data_p_a_e_male <- data_processed_after_exclusions |> 
-  filter(gender == "male")
 
-p_male_gender <- ggplot(data_p_a_e_male, aes(AMP_score, mean_evaluation, colour = gender)) +
-  geom_point() +
-  scale_colour_manual(values = "#777777")
-MARG_p_male_gender <-ggMarginal(p_male_gender, groupColour = TRUE, groupFill = TRUE)
-print(MARG_p_male_gender)
 
-#NONBINÄRY
-data_p_a_e_nb <- data_processed_after_exclusions |> 
-  filter(gender == "nonbinary")
-
-p_nb_gender <- ggplot(data_p_a_e_nb, aes(AMP_score, mean_evaluation, colour = gender)) +
-  geom_point() +
-  scale_colour_manual(values =  "#e89d97")
-MARG_p_nb_gender <- ggMarginal(p_nb_gender, groupColour = TRUE, groupFill = TRUE)
-print(MARG_p_nb_gender)
-
+ggMarginal(fr_MARG,type = "histogram", groupColour = TRUE, groupFill = TRUE)
 
 
 ```
+
 
 #### Labelled points
 
@@ -327,9 +316,41 @@ Label points using ggrepel: https://cran.r-project.org/web/packages/ggrepel/vign
 #install.packages("ggrepel")
 library(ggrepel)
 
+#labelled with participant codes
+ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, label = subject, colour = gender)) +
+  geom_point() +
+  geom_text_repel(data = subset(data_processed_after_exclusions, subject %in% c("216287717", "247697997", "881713870")), aes(label = subject), color = "black", box.padding = 0.5) +
+  scale_colour_manual(values = c("female" = "#996699", "male" = "#777777", "nonbinary" =  "#e89d97")) +
+  labs(title = "labelled subjects 216287717, 881713870 and 247697997")
+
+
+
+#labelled one group
+ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, label = subject, colour = gender)) +
+  geom_point() +
+  geom_text_repel(data = subset(data_processed_after_exclusions, gender == "nonbinary"), aes(label = subject), color = "black", box.padding = 0.5) +
+  scale_colour_manual(values = c("female" = "#996699", "male" = "#777777", "nonbinary" =  "#e89d97")) +
+  labs(title = "Just the nonbinary are labelled")
+
+
+
+#SINGLE PLOTS WITH LABELS!!!
+#PREPARE DATASETS
+data_p_a_e_nb <- data_processed_after_exclusions |>
+  filter(gender == "nonbinary")
+
+data_p_a_e_female <-data_processed_after_exclusions |>
+  filter(gender == "female")
+
+data_p_a_e_male <- data_processed_after_exclusions |>
+  filter(gender == "male")
+
+
+#for the Saving and COmbine Task
+
 #NONBINÄRY
 p_label <- ggplot(data_p_a_e_nb, aes(AMP_score, mean_evaluation, label = subject)) +
-  geom_point(color = "#7a064c")
+  geom_point(color = "#e89d97")
 
 p_label + geom_text_repel() + labs(title = "plot of nonbinarys")
 
@@ -342,9 +363,18 @@ p_f_label + geom_text_repel() + labs(title = "plot of females")
 
 #MALE - to many overlaps
 p_m_label <- ggplot(data_p_a_e_male, aes(AMP_score, mean_evaluation, label = subject)) +
-  geom_point(color = "#996699")
+  geom_point(color = "#777777")
 
 p_m_label + geom_text_repel() + labs(title = "plot of males")
+
+#ALL 
+
+p_all_label <-ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, label = subject, colour = gender)) +
+  geom_point() +
+  scale_colour_manual(values = c("female" = "#7a060a", "male" = "#777777", "nonbinary" =  "#e89d97")) +
+  labs(title = "For the other Tasks")
+
+p_all_label +geom_text_repel(color = "black") + labs(title = "plot of all genders")
 
 
 
@@ -363,31 +393,83 @@ Magnify areas of your plot with ggmagnify: https://hughjonesd.github.io/ggmagnif
 
 #FEMALE - to many overlaps
 
-from <- c(xmin =0.75,xmax = 1, ymin = 1, ymax = 1.2)
+from <- c(xmin =0.8,xmax = 1, ymin = 0.8, ymax = 1.2)
 # Names xmin, xmax, ymin, ymax are optional:
 to <- c(0.25,0.75, 2,3)
 
-p_f_label + geom_magnify(from = from, to = to)
+p_f_label + geom_magnify(from = from, to = to)+
+    labs(title = "Magnify some female participants")
+
+#or 
+
+p_m_label + geom_magnify(from = c(0.46, 0.65, 0.8,  1.2), to = c(0.3,0.8, 3,4))+
+   labs(title = "Magnify some male participants")
+
+#nonbinary to magnify would be a bit sad, because they are just three people
 
 
 
 ```
 
 ### Test
+\TODO run an appropriate test. Below the output, interpret the results. Consider using `easystats::report()`, but you can do this manually if you prefer.
+```{r}
+
+#remotes::install_github("easystats/report") <- something did go wrong
+
+
+#The Pearson's product-moment correlation shows a negative correlation between AMP Score and Mean evaluation (r = -0.12, 95% CI [-0.32, 0.09]), but this is not statistically significant due to the relatively high p-value (t(88) = -1.17, p = 0.244), Accordingly, I would assume that there is no correlation between mean evaluation and the AMP score. 
+
+
+
+#I did a Correlation between mean_evaluation and AMP_score
+Correlation <- cor(data_processed_after_exclusions$mean_evaluation, data_processed_after_exclusions$AMP_score)|>
+  print()
+
+#some additional tests
+correlation_test <- cor.test(data_processed_after_exclusions$mean_evaluation, data_processed_after_exclusions$AMP_score)|>
+  print()
+
+
+#easystats::report() <- somehow this does not work, so I tried other stuff out
+
+report_table(correlation_test)
+report_effectsize(correlation_test)
+
+
+
+
+
+#for fun and to try out
+report_table(data_processed_after_exclusions$mean_evaluation)
+report_table(data_processed_after_exclusions$AMP_score)
+
+report_statistics(correlation_test, table = NULL)
+report_parameters(correlation_test)
+
+#
+
+
+```
+
 
 \TODO 
 
 ## Self-reported evalautions differ between men and women
 ```{r}
 
-#I don't know what test, so I did a t-test
-
-data_p_e_without_nb <- data_processed_after_exclusions |>
-    filter(gender == c("female", "male"))
 
 
+# Prepare the data
+data_p_e_without_nb <- data_processed_after_exclusions %>%
+    filter(gender %in% c("female", "male"))
+
+
+#t test
 t_test_result <- t.test(mean_evaluation ~ gender, data = data_p_e_without_nb)
 print(t_test_result)
+
+#for interpreatation and report see below -> #Test
 
 ```
 ### Plot
@@ -418,10 +500,12 @@ ggplot(data_processed_after_exclusions,
 
 
 #raincloud plot
-ggplot(data_processed_after_exclusions, aes(y = gender,x = mean_evaluation, fill = gender)) +
+  ggplot(data_processed_after_exclusions, aes(y = gender, x = mean_evaluation, fill = gender)) +
   geom_density_ridges(alpha = 0.7, scale = 0.5) +
-  geom_point(position = position_jitter(), alpha = 0.5)+
-  scale_fill_manual(values = c("female"="#996699","male" = "#777777","nonbinary" = "#e89d97"))
+  geom_point(position = position_jitter(), alpha = 0.7, aes(color = gender)) +
+  scale_fill_manual(values = c("female" = "#996699", "male" = "#777777", "nonbinary" = "#e89d97")) +
+  scale_color_manual(values = c("female" = "#4d334d", "male" = "#333333", "nonbinary" = "#8c4d42"))
+  #von unten nach oben!
 
 
 
@@ -429,12 +513,20 @@ ggplot(data_processed_after_exclusions, aes(y = gender,x = mean_evaluation, fill
 
 ### Test
 
-\TODO 
+\TODO run an appropriate test. Below the output, interpret the results: write a few sentences that report and interpret the results following APA reporting style.
+
+
 
 ```{r}
+#A Welch Two Sample t-test was conducted to examine the mean evaluation between men and women. The women achieved a mean of 1.32 and the men a mean of 1.81. The mean difference is estimated to be -0.49 (95% CI [-0.86, -0.12]), indicating that, on average, male participants scored higher than the female participants. The t-statistic is indicative of a significant difference (t(83.14) = -2.62, p = 0.011). The effect size, measured by Cohen's d, is medium (-0.57, 95% CI [-1.01, -0.13]).
+#These results show that there is a significant difference between men and women in terms of their mean evaluation scores, men gave higher scores on the scales than women.
 
-#???????????
 
+report_table(t_test_result)
+report_effectsize(t_test_result)
+
+
+# T TEST
 ```
 
 ## Evaluations on the Affect Misattribution Procedure differ between men and women
@@ -446,51 +538,58 @@ ggplot(data_processed_after_exclusions, aes(y = gender,x = mean_evaluation, fill
 This time, vary the labeling and order of the legend, e.g., capitalise "Men" and "Women", and know how to change the order of the factors.
 
 ```{r}
-#REARRANGE the order of the factors
+#REARRANGE the order of the factors <- one way
 data_p_a_e_rearranged <- data_processed_after_exclusions |> 
   mutate(gender = factor(gender, levels = c("nonbinary", "female", "male")))
+#other way with aes(y = , x = factor(VARIABLE, levels = c("order")...is soetimes more complicated
 
 
 #Split Histogram
 ggplot(data_p_a_e_rearranged, 
        aes(x = AMP_score, group= gender, fill = gender)) +
-  facet_grid(~gender)+
+   facet_grid(~gender, labeller = labeller(gender = c("nonbinary" = "Nonbinary", "female" = "Women", "male" = "Men"))) +
   geom_histogram(binwidth = 1) +
   labs(title = "AMP scores by Gender",
        x = "AMP Scores",
        y = "Frequency",
        fill = "Gender") +
   scale_fill_manual(values = c("female"="#996699","male" = "#777777","nonbinary" = "#e89d97"),
-                    breaks = c("nonbinary", "female",  "male"),  # Specify the order
+                    breaks = c("nonbinary", "female",  "male"),
                     labels=c("Nonbinary", "Women", "Men"))
 
 
 
-
-#Split Violin 
+#Split Violin rearrange in aes()
 ggplot(data_p_a_e_rearranged, 
-       aes(y = AMP_score, x = gender, fill =gender)) +
-  geom_violin() +
-  labs(title = "Self-reported Evaluations by Gender",
+       aes(y = AMP_score, x = factor(gender, levels = c("female", "male", "nonbinary")), 
+           fill = gender)) +
+  geom_violin(show.legend = FALSE) +
+  labs(title = "AMP Scores by Gender",
        y = "AMP Scores",
        x = "Gender",
-       fill = "Gender")+
-  scale_fill_manual(values = c("female"="#996699","male" = "#777777","nonbinary" = "#e89d97"),
-                    breaks = c("nonbinary", "female",  "male"),  # Specify the order
-                    labels=c("Nonbinary", "Women", "Men"))
+       fill = "Gender") +
+  scale_fill_manual(values = c("female" = "#996699", "male" = "#777777", "nonbinary" = "#e89d97"),
+                    breaks = c("female", "male", "nonbinary")) +
+  scale_x_discrete(labels = c("Female", "Male", "Nonbinary"))
+
 
 
 #raincloud plot
-ggplot(data_p_a_e_rearranged, aes(y = gender,x = AMP_score, fill = gender)) +
+
+ggplot(data_p_a_e_rearranged, 
+       aes(y = gender, x = AMP_score, fill = gender)) +
   geom_density_ridges(alpha = 0.7, scale = 0.5) +
-  geom_point(position = position_jitter(), alpha = 0.5)+
+  geom_point(position = position_jitter(), alpha = 0.5, aes(color = gender), show.legend = FALSE) +
   labs(title = "AMP scores by Gender",
        x = "AMP Scores",
        y = "Gender",
-       fill = "Gender")+
-  scale_fill_manual(values = c("female"="#996699","male" = "#777777","nonbinary" = "#e89d97"),
-                    breaks = c("nonbinary", "female",  "male"),  # Specify the order
-                    labels=c("Nonbinary", "Women", "Men"))
+       fill ="Gender") +
+  scale_fill_manual(values = c("female" = "#996699", "male" = "#777777", "nonbinary" = "#e89d97"),
+                    breaks = c("male", "female", "nonbinary"),  
+                    labels = c("Male", "Female", "Nonbinary")) +
+  scale_color_manual(values = c("female" = "#4d334d", "male" = "#333333", "nonbinary" = "#8c4d42")) +
+  scale_y_discrete(labels = c("Nonbinary", "Female", "Male"))
+
 
 
 
@@ -498,13 +597,31 @@ ggplot(data_p_a_e_rearranged, aes(y = gender,x = AMP_score, fill = gender)) +
 
 ### Test
 
-\TODO 
+\TODO run an appropriate test. Below the output, print an interpretation of the results generated by the 'easystats' package [report](https://easystats.github.io/report/). I.e., use `report::report()`.
 
 ```{r}
 
-#?????????
+
+#t test
+AMP_t_test_result <- t.test(AMP_score ~ gender, data = data_p_e_without_nb)
+print(AMP_t_test_result)
+
+
+report_table(AMP_t_test_result)
+report_effectsize(AMP_t_test_result)
+
+#Interpretation
+report_text(AMP_t_test_result)
+
+#The Welch Two Sample t-test testing the difference of AMP_score by gender (mean in group female =
+#0.58, mean in group male = 0.58) suggests that the effect is positive, statistically not
+#significant, and very small (difference = 3.16e-03, 95% CI [-0.08, 0.09], t(76.08) = 0.07, p =
+#0.942; Cohen's d = 0.02, 95% CI [-0.43, 0.47])
+
+
 
 ```
+
 
 ## Combining plots
 
@@ -516,11 +633,11 @@ Combine plots using patchwork: https://patchwork.data-imaginist.com/
 #install.packages('patchwork')
 
 #one varaiant
-p_female_gender + p_male_gender + p_nb_gender
+p_f_label + p_m_label + p_label
 
 #other variant
-(p_female_gender | p_male_gender | p_nb_gender)/
-  p_all_gender
+(p_f_label + p_m_label + p_label)/
+  p_all_label
 
 ```
 
@@ -532,16 +649,16 @@ Save plots to disk with `ggsave()`
 
 ```{r}
 
-tosave<-(p_female_gender | p_male_gender | p_nb_gender)/
-  p_all_gender
+to_save<-(p_f_label + p_m_label + p_label)/
+  p_all_label
 
 
 
 dir.create("../data/plots/")
 
-ggsave("../data/plots/GENDERcomb_plot.png", plot = tosave, dpi = 300, device = "png")
+ggsave("../data/plots/Gender_Comb_plot.png", plot = to_save, dpi = 300, device = "png")
 
-ggsave("../data/plots/GENDERcomb_plot.pdf", plot = tosave, device = "pdf")
+ggsave("../data/plots/Gender_Comb_plot.pdf", plot = to_save, device = "pdf")
 
 
 ```
@@ -551,6 +668,7 @@ ggsave("../data/plots/GENDERcomb_plot.pdf", plot = tosave, device = "pdf")
 ```{r}
 
 sessionInfo()
+#for reprocthings
 
 ```
 

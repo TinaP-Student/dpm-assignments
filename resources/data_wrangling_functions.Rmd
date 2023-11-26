@@ -60,6 +60,8 @@ library(kableExtra)
 library(janitor)
 library(stringr)
 library(ggplot2)
+library(openxlsx)
+
 
 
 ```
@@ -770,6 +772,19 @@ breaks ...controls the thick marks on the axis
 
 ```
 
+
+##set.seed
+
+Die Funktion set.seed() wird in der Regel verwendet, um die Reproduzierbarkeit von Zufallszahlen in R sicherzustellen. Wenn in deinem Code Zufallsfaktoren, wie zum Beispiel Jittering in einem Plot, vorhanden sind und du möchtest sicherstellen, dass die Ergebnisse reproduzierbar sind, dann ist die Verwendung von set.seed() eine gute Praxis.
+
+Indem du set.seed() mit einer bestimmten Zahl aufrufst, wird der Zufallszahlengenerator in R auf einen bestimmten Startwert gesetzt. Wenn du dieselbe Zahl als Argument für set.seed() in verschiedenen R-Sitzungen verwendest, sollten die generierten Zufallszahlen konsistent sein.
+
+```{r}
+
+set.seed(123)
+#mein Startwert ist jetzt 123
+
+```
 
 # Printing tables
 
