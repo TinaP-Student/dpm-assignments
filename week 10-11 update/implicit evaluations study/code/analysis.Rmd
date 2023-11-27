@@ -42,6 +42,7 @@ library(ggmagnify)
 library(ggridges)
 library(patchwork)
 library(easystats)
+library(psych)
 
 
 ```
@@ -128,6 +129,22 @@ data_processed_after_exclusions |>
 Descriptive statistics and plots of the measures (excluding the demographics variables)
 
 ## Self-reported evaluations
+
+
+### Cronbachs Alpha
+raw alpha = 0.876904!
+
+```{r}
+
+library(psych)
+
+alpha_result<-alpha(subset(data_processed_after_exclusions, select = c("like", "prefer", "positive")))
+                    #, check.keys = T) for inverted items
+print(alpha_result)
+
+
+```
+
 
 ### Descriptive stats
 
@@ -507,8 +524,16 @@ ggplot(data_processed_after_exclusions,
   scale_color_manual(values = c("female" = "#4d334d", "male" = "#333333", "nonbinary" = "#8c4d42"))
   #von unten nach oben!
 
+  
+    ggplot(data_processed_after_exclusions, aes(y = gender, x = mean_evaluation, fill = gender)) +
+  geom_density_ridges(alpha = 0.7, scale = 0.5, position = position_nudge(x = 0.3, y = 0.0)) +
+   geom_point(position = position_jitter(), alpha = 0.7, aes(color = gender)) +
+  scale_fill_manual(values = c("female" = "#996699", "male" = "#777777", "nonbinary" = "#e89d97")) +
+  scale_color_manual(values = c("female" = "#4d334d", "male" = "#333333", "nonbinary" = "#8c4d42"))
 
 
+
+    
 ```
 
 ### Test
@@ -579,19 +604,23 @@ ggplot(data_p_a_e_rearranged,
 ggplot(data_p_a_e_rearranged, 
        aes(y = gender, x = AMP_score, fill = gender)) +
   geom_density_ridges(alpha = 0.7, scale = 0.5) +
-  geom_point(position = position_jitter(), alpha = 0.5, aes(color = gender), show.legend = FALSE) +
+    geom_jitter(position = position_jitterdodge(dodge.width = 0.2, jitter.width = 0.5),
+              alpha = 0.5, aes(color = gender), show.legend = TRUE) +
   labs(title = "AMP scores by Gender",
        x = "AMP Scores",
        y = "Gender",
-       fill ="Gender") +
+       fill ="Gender",
+       color = "Gender") +
   scale_fill_manual(values = c("female" = "#996699", "male" = "#777777", "nonbinary" = "#e89d97"),
                     breaks = c("male", "female", "nonbinary"),  
                     labels = c("Male", "Female", "Nonbinary")) +
-  scale_color_manual(values = c("female" = "#4d334d", "male" = "#333333", "nonbinary" = "#8c4d42")) +
+  scale_color_manual(values = c("female" = "#4d334d", "male" = "#333333", "nonbinary" = "#8c4d42"),
+                     breaks = c("male", "female", "nonbinary"),
+                     labels = c("Male", "Female", "Nonbinary")) +
   scale_y_discrete(labels = c("Nonbinary", "Female", "Male"))
 
 
-
+?position_jitterdodge
 
 ```
 
