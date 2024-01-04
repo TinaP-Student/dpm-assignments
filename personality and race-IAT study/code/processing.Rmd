@@ -27,7 +27,7 @@ library(tidyverse)
 library(janitor)
 library(stringr)
 # library(readr)
-# library(dplyr)
+library(dplyr)
 # library(tidyr)
 # library(knitr)
 # library(kableExtra)
@@ -65,56 +65,147 @@ data_raw_iat <- read_csv("../data/raw/data_raw_iat.csv") |>
 
 ```{r}
 #zuerst in eine Wideform bringen - sex in gender und unique id in id umbenennen
+#muss jetzt schon NA in ID droppen, weil ich sonst die Daten nicht anschauen kann und R abstürzt
 data_age_gender <- data_raw_demographics|>
-  select(id, variab
-   pivot_wider(names_from = variable,
+  na.omit(data_raw_demographics$unique_id)|> 
+  pivot_wider(names_from = variable,
               values_from = response)|>
-  rename(gender = sex, id = unique_id )
-
-
-  mutate(gender = tolower(gender),
-         gender = stringr::str_remove_all(gender, regex("\\W+")),
-         gender == "f" ~ "female",
-         gender == "m" ~ "male",
-         TRUE ~ "other/missing/error",
-         age = case_when(str_detect(age, "^[0-9]+$") ~ age, # if the value is only numbers -> keep it. 
-                         TRUE ~ "other/missing/error")) 
+  rename(gender = sex, ID = unique_id )
+  
 
 unique(data_age_gender$age)
-unique(data_age_gender$gender)
-unique(data_age_gender$id)
+unique(data_age_gender$gender) #wie sie die Geschlechtsangabe erfasst haben
+unique(duplicated(data_age_gender$id)) #ob es Duplicate gibt - anscheinend nicht
+
+
+data_age_gender <- data_age_gender |> 
+  filter(!duplicated(ID))|>
+  mutate(gender = stringr::str_remove_all(gender, regex("\\W+")), 
+         gender = case_when(gender == "f" ~ "female",
+                            gender == "m" ~ "male",
+                            TRUE ~ "other/missing/error"),
+         age = case_when(str_detect(age, "^[0-9]+$") ~ age, 
+                         TRUE ~ "other/missing/error")) 
 
 #extrahiere
 data_age <- data_age_gender |>
-  select(id, age)
+  select(ID, age)
 
 data_gender <- data_age_gender|>
-  select(id, gender)|>
-   mutate(gender = tolower(gender),
-         gender = stringr::str_remove_all(gender, regex("\\W+")),
-         gender == "f" ~ "female",
-         gender == "m" ~ "male",
-         TRUE ~ "other/missing/error")
-
-
+  select(ID, gender)
 
 
 ```
 
 # BFI Scale
 
-## Scale adjusting + Sanity Check
--  Reverse score the negatively worded items: the extroversion scale items 2, 5 and 7, conscientiousness items 2, 4 5 and 9, neuroticism items 2, 5, and 7, agreeableness 1, 3, 6, and 8, and openness items 7 and 9.
+## Scale adjusting 
+-  Reverse score the negatively worded items: the 
+extroversion scale items 2, 5 and 7,  
+conscientiousness items 2, 4 5 and 9, 
+neuroticism items 2, 5, and 7, 
+agreeableness 1, 3, 6, and 8, and 
+openness items 7 and 9.
 
 
 ```{r}
+
+#geht nur bis 1-6, aber die 0, 7 und NA werden später behandelt
+#habe Listen erzeugt, welche Items reversed werden müssen, um es übersichtlicher zu halten
+r_agreeableness <- c("bfi_a1", "bfi_a3", "bfi_a6", "bfi_a8")
+r_openness <- c("bfi_o7", "bfi_o9")
+r_neuroticism <- c("bfi_n2", "bfi_n5", "bfi_n7")
+r_conscientiousness <- c("bfi_c2", "bfi_c4","bfi_c5", "bfi_c9")
+r_extroversion <- c("bfi_e2", "bfi_e5", "bfi_e7")
+
+#reverse die Angaben mit case_when
+data_raw_bfi_adjusted <- data_raw_bfi |>
+  rename(ID = unique_id) |> 
+  mutate_at(vars(r_agreeableness, r_openness, r_neuroticism, r_conscientiousness, r_extroversion), list(~ case_when(
+    . == 6 ~ 1,
+    . == 5 ~ 2,
+    . == 4 ~ 3,
+    . == 3 ~ 4,
+    . == 2 ~ 5,
+    . == 1 ~ 6)))
 
 
 ```
-- Include a sanity check that assesses whether these list of item reversals, and your implementation of them, is likely to be correct: For each subscale, create a correlation table among the items (after reversals) and check that all correlations are positive. IN general, negative correlations among items are one indication that information about item reversals, or their implementation, is not correct. 
+
+## Sanity Check
+- Include a sanity check that assesses whether these list of item reversals, and your implementation of them, is likely to be correct: For each subscale, create a correlation table among the items (after reversals) and check that all correlations are positive. 
  
 ```{r}
-#Sanity Check
+#erzeuge die Subskalen und filtere die Antworten nach 1-6, somit werden die NA und 0 und 7 als Antworten ignoriert
+
+#um die genauen namen zu sehen und wie viele Items jeweils nötig sind
+colnames(data_raw_bfi_adjusted)
+
+
+#Die Korrelationen sind alle positiv, scheint dass der Reverse funktioniert hat
+
+
+# Agreeableness hat 9 items
+agreeableness = c("bfi_a1", "bfi_a2", "bfi_a3", "bfi_a4", "bfi_a5", "bfi_a6", "bfi_a7", "bfi_a8", "bfi_a9")
+
+data_bfi_agreeableness <- data_raw_bfi_adjusted |>
+  select(agreeableness) |>
+  filter_all(all_vars(. %in% 1:6)) |>
+  na.omit()
+
+cor_agreeableness <- cor(data_bfi_agreeableness)
+
+#Testversuch wie es aussieht, wenn die Items nicht reversed sind!
+# NOT_REVER_data_bfi_agreeableness <- data_raw_bfi |>
+#   select(bfi_a1, bfi_a2, bfi_a3, bfi_a4, bfi_a5, bfi_a6, bfi_a7, bfi_a8, bfi_a9) |>
+#   filter_all(all_vars(. %in% 1:6)) |>
+#   na.omit()
+# 
+# NOT_REVER_cor_agreeableness <- cor(NOT_REVER_data_bfi_agreeableness)
+
+# Conscientiousness hat 9 items
+conscientiousness<- c("bfi_c1", "bfi_c2", "bfi_c3", "bfi_c4", "bfi_c5", "bfi_c6", "bfi_c7", "bfi_c8", "bfi_c9")
+
+data_bfi_conscientiousness <- data_raw_bfi_adjusted |>
+  select(conscientiousness) |>
+  filter_all(all_vars(. %in% 1:6)) |>
+  na.omit()
+
+cor_conscientiousness <- cor(data_bfi_conscientiousness)
+
+
+# Neuroticism hat 8 items
+neuroticism <- c("bfi_n1", "bfi_n2", "bfi_n3", "bfi_n4", "bfi_n5", "bfi_n6", "bfi_n7", "bfi_n8")
+
+data_bfi_neuroticism <- data_raw_bfi_adjusted |>
+  select(neuroticism) |>
+  filter_all(all_vars(. %in% 1:6)) |>
+  na.omit()
+
+cor_neuroticism <- cor(data_bfi_neuroticism)
+
+
+# Openness hat 9 items
+openness <- c("bfi_o1", "bfi_o2", "bfi_o3", "bfi_o4", "bfi_o5", "bfi_o6", "bfi_o7", "bfi_o8", "bfi_o9")
+
+data_bfi_openness <- data_raw_bfi_adjusted |>
+  select(openness) |>
+  filter_all(all_vars(. %in% 1:6)) |>
+  na.omit()
+
+cor_openness <- cor(data_bfi_openness)
+
+
+# Extroversion hat 8 items
+extroversion <- c("bfi_e1", "bfi_e2", "bfi_e3", "bfi_e4", "bfi_e5", "bfi_e6", "bfi_e7", "bfi_e8")
+
+data_bfi_extroversion <- data_raw_bfi_adjusted |>
+  select(extroversion) |>
+  filter_all(all_vars(. %in% 1:6)) |>
+  na.omit()
+
+cor_extroversion <- cor(data_bfi_extroversion)
+
 
 ```
 
@@ -123,8 +214,60 @@ data_gender <- data_age_gender|>
 ## Data quality
 - Check that the item level data does not violate the logical minimum and maximum scores (1 to 6). Create an exclusion variable and set participants with impossible data to "exclude".
 
+
 - Check that all participants have complete data on the BFI scales they completed. Create an exclusion variable and set participants with incomplete data to "exclude".
+
 ```{r}
+
+#habe zwei Datasätze gemacht und die Teilnerhmer aufgteilt in den Gruppen: A & o <- Teilnehmer die nur diese zwei Skalen ausgefüllt haben 
+# N und E und C <- Teilnehmer, die nur diese drei Skalen ausgefüllt haben
+
+#ich kann sie so gruppieren bezöglich der exclude_impossible <- weil in der Masterexklusion müsste ich die dann sowieso excluden
+#zuerst unterteile ich den Datensatz nach ID und den gewünschten Items, falls die Teilnehmer gar keine Items aus der gewünschten Skalen gelöst haben, werde ich diese aus diesem Datensatz entfernen und sie dann im anderen Datensatz berücksichtigen, falls sie dort welche Items gelöst haben
+
+
+#für Agree und Openess -> 2 scales
+openness <- c("bfi_o1", "bfi_o2", "bfi_o3", "bfi_o4", "bfi_o5", "bfi_o6", "bfi_o7", "bfi_o8", "bfi_o9")
+agreeableness = c("bfi_a1", "bfi_a2", "bfi_a3", "bfi_a4", "bfi_a5", "bfi_a6", "bfi_a7", "bfi_a8", "bfi_a9")
+
+data_bfi_A_O <- data_raw_bfi_adjusted |>
+  select(ID, agreeableness, openness) |>
+  rowwise()|> #wenn rowwise fehlt, wird der Code nicht funktionieren 
+  filter(!if_all(-ID, is.na)) |>
+  mutate(exclude_impossible = if_else(all(c_across(c(agreeableness, openness)) %in% 1:6), "include", "exclude"))|>
+  mutate(exclude_not_completed = if_else(any(is.na(c_across(c(agreeableness, openness)))), "exclude", "include"))
+
+
+
+#für Extra Neure und Verträglich -> 3 scales
+extroversion <- c("bfi_e1", "bfi_e2", "bfi_e3", "bfi_e4", "bfi_e5", "bfi_e6", "bfi_e7", "bfi_e8")
+neuroticism <- c("bfi_n1", "bfi_n2", "bfi_n3", "bfi_n4", "bfi_n5", "bfi_n6", "bfi_n7", "bfi_n8")
+conscientiousness<- c("bfi_c1", "bfi_c2", "bfi_c3", "bfi_c4", "bfi_c5", "bfi_c6", "bfi_c7", "bfi_c8", "bfi_c9")
+
+data_bfi_N_E_C <- data_raw_bfi_adjusted |>
+  select(ID, extroversion, neuroticism, conscientiousness) |>
+  rowwise()|>
+  filter(!if_all(-ID, is.na)) |>
+  mutate(exclude_impossible = if_else(all(c_across(c(extroversion, neuroticism, conscientiousness)) %in% 1:6), "include", "exclude"))|>
+  mutate(exclude_not_completed = if_else(any(is.na(c_across(c(extroversion, neuroticism, conscientiousness)))), "exclude", "include"))
+
+
+
+#Abgleich, ob alle IDs berücksichtigt worden sind und jeder ID entweder in NEC or AO ist
+
+#179 Observationen wie im nicht merged Satz - heisst komplett
+merged_data <- full_join(data_bfi_A_O, data_bfi_N_E_C, by = "ID")|>
+  select("ID")
+notmerged_data <- data_raw_bfi_adjusted|>
+  select("ID")
+
+
+differences_data1 <- anti_join(notmerged_data, merged_data, by = "ID")
+differences_data2 <- anti_join(merged_data, notmerged_data, by = "ID")
+#keine unterschiedlichen Daten gefunden!
+
+#keine Dupilcate!
+duplicated(merged_data)
 
 
 ```
@@ -135,6 +278,9 @@ data_gender <- data_age_gender|>
 
  - Check that the mean scores do not violate the min and max possible score (i.e., first determine this min and max score), and revise your scoring code if it does. 
 ```{r}
+
+
+
 
 
 ```
