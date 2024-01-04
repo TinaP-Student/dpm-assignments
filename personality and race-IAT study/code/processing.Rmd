@@ -26,14 +26,13 @@ knitr::opts_chunk$set(message = FALSE,
 library(tidyverse)
 library(janitor)
 library(stringr)
-library(readr)
-library(dplyr)
-library(tidyr)
-library(knitr)
-library(kableExtra)
-library(janitor)
-library(stringr)
-library(openxlsx)
+# library(readr)
+# library(dplyr)
+# library(tidyr)
+# library(knitr)
+# library(kableExtra)
+# library(stringr)
+# library(openxlsx)
 
 
 ```
@@ -58,12 +57,46 @@ data_raw_iat <- read_csv("../data/raw/data_raw_iat.csv") |>
 
 
 
+
 ```
 
 # Demographics
 - Extract age and gender from the raw demographics data.
 
 ```{r}
+#zuerst in eine Wideform bringen - sex in gender und unique id in id umbenennen
+data_age_gender <- data_raw_demographics|>
+  select(id, variab
+   pivot_wider(names_from = variable,
+              values_from = response)|>
+  rename(gender = sex, id = unique_id )
+
+
+  mutate(gender = tolower(gender),
+         gender = stringr::str_remove_all(gender, regex("\\W+")),
+         gender == "f" ~ "female",
+         gender == "m" ~ "male",
+         TRUE ~ "other/missing/error",
+         age = case_when(str_detect(age, "^[0-9]+$") ~ age, # if the value is only numbers -> keep it. 
+                         TRUE ~ "other/missing/error")) 
+
+unique(data_age_gender$age)
+unique(data_age_gender$gender)
+unique(data_age_gender$id)
+
+#extrahiere
+data_age <- data_age_gender |>
+  select(id, age)
+
+data_gender <- data_age_gender|>
+  select(id, gender)|>
+   mutate(gender = tolower(gender),
+         gender = stringr::str_remove_all(gender, regex("\\W+")),
+         gender == "f" ~ "female",
+         gender == "m" ~ "male",
+         TRUE ~ "other/missing/error")
+
+
 
 
 ```
