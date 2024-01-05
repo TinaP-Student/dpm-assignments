@@ -52,10 +52,11 @@ data_raw_bfi <- read_csv("../data/raw/data_raw_bfi.csv") |>
   janitor::clean_names()
 
 #data_raw_iat
+#renamed the columns and sliced the first row, because of the additional columnsnames
 data_raw_iat <- read_csv("../data/raw/data_raw_iat.csv") |>
-  janitor::clean_names()
-
-
+  janitor::clean_names()|>
+  rename(ID = participant, block_number = block, block_required_responses = 3, trial_response = trial, trial_accuracy = 5, reaction_time = 6)|>
+  slice(-1)
 
 
 ```
@@ -347,31 +348,100 @@ bounded_correctly_c <- count(check_data_bfi_meanscores, bounded_correctly_c)
 # IAT Scale
 
 ## D Score
-- Score the trial-level IAT data using the Greenwald "D" score: Calculate a mean RT ("mean1") for blocks 3 and 6 (one score using trials from both blocks), a mean RT ("mean2") for blocks 4 and 7 (one score using trials from both blocks), and the SD of RTs in blocks 3, 4, 6 and 7 ("SD"). To calculate D: D = (mean2 - mean1)/SD. Blocks 1, 2, and 5 are practice blocks and must be discarded. 
+- Score the trial-level IAT data using the Greenwald "D" score: 
+Calculate a mean RT ("mean1") for blocks 3 and 6 (one score using trials from both blocks), 
+a mean RT ("mean2") for blocks 4 and 7 (one score using trials from both blocks), 
+and the SD of RTs in blocks 3, 4, 6 and 7 ("SD"). To calculate D: D = (mean2 - mean1)/SD. 
+
+Blocks 1, 2, and 5 are practice blocks and must be discarded. 
 ```{r}
+data_raw_iat_check <- data_raw_iat |>
+  filter(!block_number %in% c("1", "2", "5"))|>
+  count(block_number)
+
+#das entfernen von den practice blocks hat geklappt
+
+
+data_raw_iat_D <- data_raw_iat |>
+  filter(!block_number %in% c("1", "2", "5"))|>
+  mutate(reaction_time = as.numeric(reaction_time))|>
+  group_by(ID) |>
+  summarize(mean1 = mean(reaction_time[block_number %in% c("3", "6")]),
+            mean2 = mean(reaction_time[block_number %in% c("4", "7")]),
+            SD = sd(c(reaction_time[block_number %in% c("3", "6")],
+                     reaction_time[block_number %in% c("4", "7")])),
+            D = (mean2 - mean1) / SD)  |>
+  ungroup()
+#179 Observationen, stimmt mit den Observationen von BFI überein! 
 
 
 ```
 
-
+### Sanity Check
 - Include a sanity check: check that all D scores are in the range -2 to +2. If not, revise your implementation of the scoring code. 
 
 ```{r}
-
+#no need to revise the code
+         
+out_of_range_d <- data_raw_iat_D |>
+  filter(D < -2 | D > 2)
 
 ```
 
 ## Exclusions
   - Create an exclusion variable and set participants with incomplete trial level IAT data to "exclude". Specifically, IAT should have 120 trials on the critical test blocks (i.e., blocks 3, 4, 6 and 7). Trials on the other (practice) blocks can be discarded.
+    - Create an exclusion variable for IAT performance: 
+  set participants with >10% of the participants trials are < 300ms, 
+  or if their accuracy is < than 75%. Only use trials from the critical test blocks when computing these (i.e., blocks 3, 4, 6 and 7).
   
 ```{r}
+data_iat_incomplete <- data_raw_iat |>
+  filter(!block_number %in% c("1", "2", "5"))|>
+  group_by(ID) |>
+  summarize(total_trials = n())|>
+  mutate(exclude_incomplete = if_else(total_trials == 120, "include", "exclude"))|>
+  ungroup()
 
 
 ```
 
-  - Create an exclusion variable for IAT performance: set participants with >10% of the participants trials are < 300ms, or if their accuracy is < than 75%. Only use trials from the critical test blocks when computing these (i.e., blocks 3, 4, 6 and 7).
+
 
 ```{r}
+
+##zuerst getrennt gemacht, um eine bessere Übersicht zu haben
+
+# exclusion_less_300 <- data_raw_iat |>
+#   filter(!block_number %in% c("1", "2", "5"))|>
+#   mutate(reaction_time = as.numeric(reaction_time), 
+#          less_300 = if_else(reaction_time < 300, TRUE, FALSE)) |> 
+#   group_by(ID) |>
+#   summarize(fast_rt = mean(less_300))|>
+#   mutate(exclude1 = if_else(fast_rt > 0.10, "exclude", "include"))
+# 
+# 
+# exclusion_accuracy <- data_raw_iat|>
+#   filter(!block_number %in% c("1", "2", "5"))|>
+#   mutate(accuracy = if_else(trial_accuracy == "correct", TRUE, FALSE)) |>
+#   group_by(ID)|>
+#   summarize(average_accuracy = mean(accuracy))|>
+#   mutate(exclude2 = if_else(average_accuracy < 0.75, "exclude", "include"))
+
+
+
+#die zwei Codeblöcke zusammengeführt, um es kompakter zu halten
+
+data_iat_trials_exclusions <- data_raw_iat |>
+  filter(!block_number %in% c("1", "2", "5"))|>
+  mutate(reaction_time = as.numeric(reaction_time), 
+         less_300 = if_else(reaction_time < 300, TRUE, FALSE),
+         accuracy = if_else(trial_accuracy == "correct", TRUE, FALSE)) |> 
+  group_by(ID) |>
+  summarize(fast_rt = mean(less_300),
+            average_accuracy = mean(accuracy))|>
+  mutate(exclude_fast = if_else(fast_rt > 0.10, "exclude", "include"),
+         exclude_accuracy = if_else(average_accuracy < 0.75, "exclude", "include"))|>
+  ungroup()
 
 
 ```
@@ -379,7 +449,6 @@ bounded_correctly_c <- count(check_data_bfi_meanscores, bounded_correctly_c)
 # Combine BFI & IAT
 - Combine the demographics, BFI, and IAT data into one data frame. This data frame should be one-row-one-participant. Both the mean scored and item level BFI data should be present in the dataset.
 ```{r}
-
 
 
 ```
