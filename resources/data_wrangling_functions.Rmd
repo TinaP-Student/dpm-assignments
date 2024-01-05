@@ -222,6 +222,7 @@ Alternative:  wir benützen das *skip* argument bei read.csv
 mtcars #das hat 32 Reihen
 slice(mtcars, 2:n()) #von Reihe 2 bis... erho jetzt 31 Reihen
 
+?slice
 
 
 ```

@@ -26,13 +26,13 @@ knitr::opts_chunk$set(message = FALSE,
 library(tidyverse)
 library(janitor)
 library(stringr)
-# library(readr)
+library(readr)
 library(dplyr)
 # library(tidyr)
 # library(knitr)
 # library(kableExtra)
 # library(stringr)
-# library(openxlsx)
+library(openxlsx)
 
 
 ```
@@ -67,26 +67,32 @@ data_raw_iat <- read_csv("../data/raw/data_raw_iat.csv") |>
 ```{r}
 #zuerst in eine Wideform bringen - sex in gender und unique id in id umbenennen
 #muss jetzt schon NA in ID droppen, weil ich sonst die Daten nicht anschauen kann und R abstürzt
-data_age_gender <- data_raw_demographics|>
+data_a_g <- data_raw_demographics|>
   na.omit(data_raw_demographics$unique_id)|> 
   pivot_wider(names_from = variable,
               values_from = response)|>
   rename(gender = sex, ID = unique_id )
   
 
-unique(data_age_gender$age)
-unique(data_age_gender$gender) #wie sie die Geschlechtsangabe erfasst haben
-unique(duplicated(data_age_gender$id)) #ob es Duplicate gibt - anscheinend nicht
+unique(data_a_g$age)
+unique(data_a_g$gender) #wie sie die Geschlechtsangabe erfasst haben
+unique(duplicated(data_a_g$ID)) #ob es Duplicate gibt - anscheinend nicht
 
 
-data_age_gender <- data_age_gender |> 
-  filter(!duplicated(ID))|>
+#ich habe zwei Versionen gemacht, weil es nicht genau in der Aufgabe stand
+#in der zweiten Version habe ich alle NAs gedroppt und es hat einen gigantischen Unterschied gemacht
+data_age_gender_1453 <- data_a_g |> 
   mutate(gender = stringr::str_remove_all(gender, regex("\\W+")), 
          gender = case_when(gender == "f" ~ "female",
-                            gender == "m" ~ "male",
-                            TRUE ~ "other/missing/error"),
-         age = case_when(str_detect(age, "^[0-9]+$") ~ age, 
-                         TRUE ~ "other/missing/error")) 
+                            gender == "m" ~ "male"),
+         age = case_when(str_detect(age, "^[0-9]+$") ~ age))
+
+data_age_gender_155 <- data_a_g |> 
+  mutate(gender = stringr::str_remove_all(gender, regex("\\W+")), 
+         gender = case_when(gender == "f" ~ "female",
+                            gender == "m" ~ "male"),
+         age = case_when(str_detect(age, "^[0-9]+$") ~ age))|>
+  na.omit()
 
 #extrahiere
 data_age <- data_age_gender |>
@@ -94,6 +100,7 @@ data_age <- data_age_gender |>
 
 data_gender <- data_age_gender|>
   select(ID, gender)
+
 
 
 ```
@@ -254,6 +261,11 @@ data_bfi_N_E_C <- data_raw_bfi_adjusted |>
   mutate(exclude_impossible = if_else(all(c_across(c(extroversion, neuroticism, conscientiousness)) %in% 1:6), "include", "exclude"))|>
   mutate(exclude_not_completed = if_else(any(is.na(c_across(c(extroversion, neuroticism, conscientiousness)))), "exclude", "include"))
 
+
+#die beiden Datasätze nun wiedergemeinsam kombinieren
+data_bfi_all_5 <- full_join(data_bfi_A_O, data_bfi_N_E_C, by = join_by(ID, exclude_impossible, exclude_not_completed)) |>
+  select(-exclude_impossible,-exclude_not_completed, exclude_impossible, exclude_not_completed)
+
 ```
 
 ### Data check
@@ -403,13 +415,25 @@ data_iat_incomplete <- data_raw_iat |>
   ungroup()
 
 
-```
 
 
 
-```{r}
+data_iat_trials_exclusions <- data_raw_iat |>
+  filter(!block_number %in% c("1", "2", "5"))|>
+  mutate(reaction_time = as.numeric(reaction_time), 
+         less_300 = if_else(reaction_time < 300, TRUE, FALSE),
+         accuracy = if_else(trial_accuracy == "correct", TRUE, FALSE)) |> 
+  group_by(ID) |>
+  summarize(fast_rt = mean(less_300),
+            average_accuracy = mean(accuracy))|>
+  mutate(exclude_fast = if_else(fast_rt > 0.10, "exclude", "include"),
+         exclude_accuracy = if_else(average_accuracy < 0.75, "exclude", "include"))|>
+  ungroup()
+
+
 
 ##zuerst getrennt gemacht, um eine bessere Übersicht zu haben
+#die zwei Codeblöcke zusammengeführt, um es kompakter zu halten
 
 # exclusion_less_300 <- data_raw_iat |>
 #   filter(!block_number %in% c("1", "2", "5"))|>
@@ -429,19 +453,6 @@ data_iat_incomplete <- data_raw_iat |>
 
 
 
-#die zwei Codeblöcke zusammengeführt, um es kompakter zu halten
-
-data_iat_trials_exclusions <- data_raw_iat |>
-  filter(!block_number %in% c("1", "2", "5"))|>
-  mutate(reaction_time = as.numeric(reaction_time), 
-         less_300 = if_else(reaction_time < 300, TRUE, FALSE),
-         accuracy = if_else(trial_accuracy == "correct", TRUE, FALSE)) |> 
-  group_by(ID) |>
-  summarize(fast_rt = mean(less_300),
-            average_accuracy = mean(accuracy))|>
-  mutate(exclude_fast = if_else(fast_rt > 0.10, "exclude", "include"),
-         exclude_accuracy = if_else(average_accuracy < 0.75, "exclude", "include"))|>
-  ungroup()
 
 
 ```
@@ -451,14 +462,73 @@ data_iat_trials_exclusions <- data_raw_iat |>
 ```{r}
 
 
+
+#ID was not as nummeric and couldnt be join at first 
+data_processed_iat <- data_raw_iat_D|>
+  full_join(data_iat_incomplete, by = "ID")|>
+  full_join(data_iat_trials_exclusions, by = "ID")|>
+  mutate(ID = as.numeric(ID))
+
+data_processed_bfi <- data_bfi_all_5|>
+  full_join(data_bfi_meanscores, by = "ID")
+
+
+# ultimative join - again with the two diffrent versions
+data_processed_before_exklusions_155 <- data_age_gender_155|>
+  full_join(data_processed_iat, by = "ID")|>
+  full_join(data_processed_bfi, by = "ID")
+
+data_processed_before_exklusions_1453 <- data_age_gender_1453|>
+  full_join(data_processed_iat, by = "ID")|>
+  full_join(data_processed_bfi, by = "ID")
+    
+# duplicates... no duplicates, but not anymore 179 Participants -> 182 the extra two are from the demographics and they don't have any Scale Datas - ich werde sie ihm nächsten Schritt droppen
+
+# data_processed_duplicates <- data_processed_temp |>
+#   count(ID) |>
+#   mutate(exclude_duplicate_data = if_else(n > 1, "exclude", "include"))|>
+#   select(-n)
+ 
+
+
 ```
 
 # Master exclusions
 - Create a master exclude variable from the individual exclude variables. 
+Ich werde eine weitere Variable kreaieren, die die Teilnehmer ohne ScaleDaten ebenfalls herausnimmt, weil die aus dem Datasatz Demographics kommen 
 ```{r}
 
+#exluded die Teilnehmer aus der Demographics, die keine Itemwerte haben 
+#if_all(-c(ID, age, gender), is.na) ~ "exclude", 
+
+data_processed_155 <- data_processed_before_exklusions_155|>
+  mutate(exclude_participant = case_when(if_all(-c(ID, age, gender), is.na) ~ "exclude", 
+                                         exclude_impossible == "exclude" ~ "exclude",
+                                         exclude_not_completed == "exclude" ~ "exclude",
+                                         exclude_incomplete == "exclude" ~ "exclude",
+                                         exclude_fast == "exclude" ~ "exclude",
+                                         exclude_accuracy == "exclude" ~ "exclude",
+                                         TRUE ~ "include"))
+
+# ID: 417047 <- ist einer von denen, wo nur Alter und Gender vorhanden ist, sonst keine weiteren Werte
+# show <- data_processed|>
+#   filter(ID == 417047)|>
+#   print()
 
 
+#die andere Version
+data_processed_1453 <- data_processed_before_exklusions_1453|>
+  mutate(exclude_participant = case_when(if_all(-c(ID, age, gender), is.na) ~ "exclude", 
+                                         exclude_impossible == "exclude" ~ "exclude",
+                                         exclude_not_completed == "exclude" ~ "exclude",
+                                         exclude_incomplete == "exclude" ~ "exclude",
+                                         exclude_fast == "exclude" ~ "exclude",
+                                         exclude_accuracy == "exclude" ~ "exclude",
+                                         TRUE ~ "include"))
+
+#teilnehmer ohne Alter und Geschlecht werden berücksichtigt  
+#count(data_processed_1453, age, exclude_participant)
+#count(data_processed_1453, gender, exclude_participant)
 ```
 
 # Write to disk
@@ -466,10 +536,16 @@ data_iat_trials_exclusions <- data_raw_iat |>
 ```{r}
 
 # exists already
-#dir.create("../data/processed/")
+dir.create("../data/processed/", recursive = TRUE)
 
-# save data
+
 #write_csv(data_processed, "../data/processed/data_processed.csv")
+
+write_csv(data_processed_155, "../data/processed/data_processed_155.csv")
+write_csv(data_processed_1453, "../data/processed/data_processed_1453.csv")
+
+
+
 
 ```
 
@@ -481,10 +557,11 @@ data_iat_trials_exclusions <- data_raw_iat |>
 
 data_processed <- read_csv("../data/processed/data_processed.csv")
 
+data_processed_155 <- read_csv("../data/processed/data_processed_155.csv")
 
 
 if(!file.exists("../data/processed/data_processed_codebook.xlsx")){
-  codebook_template <- data.frame(variable = colnames(data_processed)) |>
+  codebook_template <- data.frame(variable = colnames(data_processed_155)) |>
     mutate(explanation = NA)
 
   write.xlsx(codebook_template, file = "../data/processed/data_processed_codebook.xlsx")
