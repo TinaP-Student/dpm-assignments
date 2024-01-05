@@ -153,6 +153,7 @@ data_amp_score_congruence |>
   count(trialcode, evaluative_response, prime_congruence) |>
   nrow() == 4
 
+
 # calculate AMP score 
 data_amp_score <- data_amp_score_congruence |> 
   group_by(subject) |> 

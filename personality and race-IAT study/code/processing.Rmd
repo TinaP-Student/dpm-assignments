@@ -132,11 +132,13 @@ data_raw_bfi_adjusted <- data_raw_bfi |>
 
 ```
 
-## Sanity Check
+### Sanity Check
 - Include a sanity check that assesses whether these list of item reversals, and your implementation of them, is likely to be correct: For each subscale, create a correlation table among the items (after reversals) and check that all correlations are positive. 
  
 ```{r}
 #erzeuge die Subskalen und filtere die Antworten nach 1-6, somit werden die NA und 0 und 7 als Antworten ignoriert
+
+#sc_ steht für sanity check
 
 #um die genauen namen zu sehen und wie viele Items jeweils nötig sind
 colnames(data_raw_bfi_adjusted)
@@ -148,12 +150,12 @@ colnames(data_raw_bfi_adjusted)
 # Agreeableness hat 9 items
 agreeableness = c("bfi_a1", "bfi_a2", "bfi_a3", "bfi_a4", "bfi_a5", "bfi_a6", "bfi_a7", "bfi_a8", "bfi_a9")
 
-data_bfi_agreeableness <- data_raw_bfi_adjusted |>
+data_bfi_sc_agreeableness <- data_raw_bfi_adjusted |>
   select(agreeableness) |>
   filter_all(all_vars(. %in% 1:6)) |>
   na.omit()
 
-cor_agreeableness <- cor(data_bfi_agreeableness)
+cor_agreeableness <- cor(data_bfi_sc_agreeableness)
 
 #Testversuch wie es aussieht, wenn die Items nicht reversed sind!
 # NOT_REVER_data_bfi_agreeableness <- data_raw_bfi |>
@@ -166,45 +168,45 @@ cor_agreeableness <- cor(data_bfi_agreeableness)
 # Conscientiousness hat 9 items
 conscientiousness<- c("bfi_c1", "bfi_c2", "bfi_c3", "bfi_c4", "bfi_c5", "bfi_c6", "bfi_c7", "bfi_c8", "bfi_c9")
 
-data_bfi_conscientiousness <- data_raw_bfi_adjusted |>
+data_bfi_sc_conscientiousness <- data_raw_bfi_adjusted |>
   select(conscientiousness) |>
   filter_all(all_vars(. %in% 1:6)) |>
   na.omit()
 
-cor_conscientiousness <- cor(data_bfi_conscientiousness)
+cor_conscientiousness <- cor(data_bfi_sc_conscientiousness)
 
 
 # Neuroticism hat 8 items
 neuroticism <- c("bfi_n1", "bfi_n2", "bfi_n3", "bfi_n4", "bfi_n5", "bfi_n6", "bfi_n7", "bfi_n8")
 
-data_bfi_neuroticism <- data_raw_bfi_adjusted |>
+data_bfi_sc_neuroticism <- data_raw_bfi_adjusted |>
   select(neuroticism) |>
   filter_all(all_vars(. %in% 1:6)) |>
   na.omit()
 
-cor_neuroticism <- cor(data_bfi_neuroticism)
+cor_neuroticism <- cor(data_bfi_sc_neuroticism)
 
 
 # Openness hat 9 items
 openness <- c("bfi_o1", "bfi_o2", "bfi_o3", "bfi_o4", "bfi_o5", "bfi_o6", "bfi_o7", "bfi_o8", "bfi_o9")
 
-data_bfi_openness <- data_raw_bfi_adjusted |>
+data_bfi_sc_openness <- data_raw_bfi_adjusted |>
   select(openness) |>
   filter_all(all_vars(. %in% 1:6)) |>
   na.omit()
 
-cor_openness <- cor(data_bfi_openness)
+cor_openness <- cor(data_bfi_sc_openness)
 
 
 # Extroversion hat 8 items
 extroversion <- c("bfi_e1", "bfi_e2", "bfi_e3", "bfi_e4", "bfi_e5", "bfi_e6", "bfi_e7", "bfi_e8")
 
-data_bfi_extroversion <- data_raw_bfi_adjusted |>
+data_bfi_sc_extroversion <- data_raw_bfi_adjusted |>
   select(extroversion) |>
   filter_all(all_vars(. %in% 1:6)) |>
   na.omit()
 
-cor_extroversion <- cor(data_bfi_extroversion)
+cor_extroversion <- cor(data_bfi_sc_extroversion)
 
 
 ```
@@ -223,20 +225,20 @@ cor_extroversion <- cor(data_bfi_extroversion)
 # N und E und C <- Teilnehmer, die nur diese drei Skalen ausgefüllt haben
 
 #ich kann sie so gruppieren bezöglich der exclude_impossible <- weil in der Masterexklusion müsste ich die dann sowieso excluden
-#zuerst unterteile ich den Datensatz nach ID und den gewünschten Items, falls die Teilnehmer gar keine Items aus der gewünschten Skalen gelöst haben, werde ich diese aus diesem Datensatz entfernen und sie dann im anderen Datensatz berücksichtigen, falls sie dort welche Items gelöst haben
+#zuerst unterteile ich den Datensatz nach ID und den gewünschten Items, falls die Teilnehmer gar keine Items aus der gewünschten Skalen gelöst haben, werde ich diese aus diesem Datensatz entfernen und sie dann im anderen Datensatz berücksichtigen
 
 
 #für Agree und Openess -> 2 scales
 openness <- c("bfi_o1", "bfi_o2", "bfi_o3", "bfi_o4", "bfi_o5", "bfi_o6", "bfi_o7", "bfi_o8", "bfi_o9")
-agreeableness = c("bfi_a1", "bfi_a2", "bfi_a3", "bfi_a4", "bfi_a5", "bfi_a6", "bfi_a7", "bfi_a8", "bfi_a9")
+agreeableness <- c("bfi_a1", "bfi_a2", "bfi_a3", "bfi_a4", "bfi_a5", "bfi_a6", "bfi_a7", "bfi_a8", "bfi_a9")
 
 data_bfi_A_O <- data_raw_bfi_adjusted |>
   select(ID, agreeableness, openness) |>
   rowwise()|> #wenn rowwise fehlt, wird der Code nicht funktionieren 
-  filter(!if_all(-ID, is.na)) |>
+  filter(!if_all(-ID, is.na)) |> #es müssen ALLE NAs sein, danne rst gedroppt
   mutate(exclude_impossible = if_else(all(c_across(c(agreeableness, openness)) %in% 1:6), "include", "exclude"))|>
   mutate(exclude_not_completed = if_else(any(is.na(c_across(c(agreeableness, openness)))), "exclude", "include"))
-
+#ich haben die zweier oder dreier Skalen zusammengenommen, weil die Teilnehmer entweder zwei oder drei ganz ausgefüllt haben sollten 
 
 
 #für Extra Neure und Verträglich -> 3 scales
@@ -251,11 +253,14 @@ data_bfi_N_E_C <- data_raw_bfi_adjusted |>
   mutate(exclude_impossible = if_else(all(c_across(c(extroversion, neuroticism, conscientiousness)) %in% 1:6), "include", "exclude"))|>
   mutate(exclude_not_completed = if_else(any(is.na(c_across(c(extroversion, neuroticism, conscientiousness)))), "exclude", "include"))
 
+```
 
-
+### Data check
+```{r}
 #Abgleich, ob alle IDs berücksichtigt worden sind und jeder ID entweder in NEC or AO ist
 
 #179 Observationen wie im nicht merged Satz - heisst komplett
+
 merged_data <- full_join(data_bfi_A_O, data_bfi_N_E_C, by = "ID")|>
   select("ID")
 notmerged_data <- data_raw_bfi_adjusted|>
@@ -276,14 +281,68 @@ duplicated(merged_data)
 ## Mean score
 - Mean-score the subscales of the BFI scale. Each participant only got either 2 or 3 subscales. 
 
- - Check that the mean scores do not violate the min and max possible score (i.e., first determine this min and max score), and revise your scoring code if it does. 
+
 ```{r}
 
+#eleganter wäre es gewesen mit "starts_with" aber das hat leider nicht geklappt
+
+#openness <- c(bfi_o1, bfi_o2, bfi_o3, bfi_o4, bfi_o5, bfi_o6, bfi_o7, bfi_o8, bfi_o9)
+#agreeableness <- c(bfi_a1, bfi_a2, bfi_a3, bfi_a4, bfi_a5, bfi_a6, bfi_a7, bfi_a8, bfi_a9)
+
+data_bfi_ms_A_O <- data_bfi_A_O |>
+  group_by(ID) |>
+  summarize(mean_agreeableness = mean(c(bfi_a1, bfi_a2, bfi_a3, bfi_a4, bfi_a5, bfi_a6, bfi_a7, bfi_a8, bfi_a9)),
+            mean_openness = mean(c(bfi_o1, bfi_o2, bfi_o3, bfi_o4, bfi_o5, bfi_o6, bfi_o7, bfi_o8, bfi_o9)))
+
+# extroversion <- c(bfi_e1, bfi_e2, bfi_e3, bfi_e4, bfi_e5, bfi_e6, bfi_e7, bfi_e8)
+# neuroticism <- c(bfi_n1, bfi_n2, bfi_n3, bfi_n4, bfi_n5, bfi_n6, bfi_n7, bfi_n8)
+# conscientiousness<- c(bfi_c1, bfi_c2, bfi_c3, bfi_c4, bfi_c5, bfi_c6, bfi_c7, bfi_c8, bfi_c9)
+
+data_bfi_ms_N_E_C <- data_bfi_N_E_C |>
+  group_by(ID) |>
+  summarize(mean_extroversion = mean(c(bfi_e1, bfi_e2, bfi_e3, bfi_e4, bfi_e5, bfi_e6, bfi_e7, bfi_e8)),
+            mean_neuroticism = mean(c(bfi_n1, bfi_n2, bfi_n3, bfi_n4, bfi_n5, bfi_n6, bfi_n7, bfi_n8)),
+            mean_conscientiousness = mean(c(bfi_c1, bfi_c2, bfi_c3, bfi_c4, bfi_c5, bfi_c6, bfi_c7, bfi_c8, bfi_c9)))
 
 
-
+data_bfi_meanscores <- full_join(data_bfi_ms_A_O, data_bfi_ms_N_E_C, by= "ID")
 
 ```
+
+
+### Meanscore Check
+ - Check that the mean scores do not violate the min and max possible score (i.e., first determine this min and max score), and revise your scoring code if it does. 
+```{r}
+#mindest MeanScore kann nur 1 sein und max score kann nur 6 sein, weil der Durchschnitt höher oder kleiner sein kann als Werte aus dem es gebildet worden ist
+#die NAs werden ignoriert, weil sie im weiteren Verlauf gehandeld werden 
+
+  
+check_data_bfi_meanscores <- data_bfi_meanscores |>
+  mutate(bounded_correctly_a = if_else(is.na(mean_agreeableness), "ignore", 
+                                         if_else(between(mean_agreeableness, left = 1, right = 6), "yes", "no")),
+         bounded_correctly_O = if_else(is.na(mean_openness), "ignore", 
+                                         if_else(between(mean_openness, left = 1, right = 6), "yes", "no")),
+         bounded_correctly_n = if_else(is.na(mean_neuroticism), "ignore", 
+                                         if_else(between(mean_neuroticism, left = 1, right = 6), "yes", "no")),
+         bounded_correctly_e = if_else(is.na(mean_extroversion), "ignore", 
+                                         if_else(between(mean_extroversion, left = 1, right = 6), "yes", "no")),
+         bounded_correctly_c = if_else(is.na(mean_conscientiousness), "ignore", 
+                                         if_else(between(mean_conscientiousness, left = 1, right = 6), "yes", "no")))
+
+
+
+
+bounded_correctly_a <- count(check_data_bfi_meanscores, bounded_correctly_a)
+bounded_correctly_O <- count(check_data_bfi_meanscores, bounded_correctly_O)
+bounded_correctly_n <- count(check_data_bfi_meanscores, bounded_correctly_n)
+bounded_correctly_e <- count(check_data_bfi_meanscores, bounded_correctly_e)
+bounded_correctly_c <- count(check_data_bfi_meanscores, bounded_correctly_c)
+
+
+#no need to revise the code, weil es keine "no" s gibt und die Observationen bleiben auf 179 
+
+```
+
 
 # IAT Scale
 
