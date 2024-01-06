@@ -30,25 +30,28 @@ options(scipen = 999)
 library(tidyverse)
 library(knitr)
 library(kableExtra)
-library(janitor)
+# library(janitor)
 library(scales)
-
-library("ggExtra")
-library("ggplot2")
-library("viridis") 
-library("ggsci")
-library(ggrepel)
-library(ggmagnify)
-library(ggridges)
-library(patchwork)
-library(easystats)
+# 
+# library("ggExtra")
+library(ggplot2)
+# library("viridis") 
+# library("ggsci")
+# library(ggrepel)
+# library(ggmagnify)
+# library(ggridges)
+# library(patchwork)
+# library(easystats)
 library(psych)
+library(report)
 
 
 ```
 #SET.SEED
 
 ```{r}
+#mache ichs chon am Anfang und für Reproduzierbarkeit
+
 set.seed(123) 
 
 ```
@@ -58,6 +61,8 @@ set.seed(123)
 ```{r}
 
 data_processed <- read_csv("../data/processed/data_processed.csv")
+
+
 
 data_processed_after_exclusions <- data_processed |>
   filter(exclude_participant == "include")
@@ -74,7 +79,7 @@ data_processed_after_exclusions <- data_processed |>
 data_processed |>
   count(name = "n") |>
   kable() |>
-  add_header_above(header = c("Whole sample" = 1)) |>
+  add_header_above(header = c("Sample before exclusions" = 1)) |>
   kable_classic(full_width = FALSE)
 
 ```
@@ -86,7 +91,7 @@ data_processed |>
 data_processed_after_exclusions |>
   count(name = "n") |>
   kable() |>
-  add_header_above(header = c("For analysis" = 1)) |>
+  add_header_above(header = c("Sample after exclusions" = 1)) |>
   kable_classic(full_width = FALSE)
 
 ```
@@ -97,14 +102,54 @@ data_processed_after_exclusions |>
 ### Age
 ```{r}
 
+#alle Personen incl. die missings - interessanterweise macht es da keinen Unterschied!
 
+# data_processed_after_exclusions |>
+#   mutate(age = as.numeric(age)) |>
+#   summarise(Mean = mean(age, na.rm = TRUE),
+#             SD = sd(age, na.rm = TRUE)) |>
+#   mutate_all(.funs = janitor::round_half_up, digits = 1) |>
+#   kable() |>
+#   add_header_above(header = c("Age" = 2)) |>
+#   kable_classic(full_width = FALSE)
+
+
+data_processed_after_exclusions |>
+  filter(age != "missing")|>
+  mutate(age = as.numeric(age)) |>
+  summarise(Mean = mean(age, na.rm = TRUE),
+            SD = sd(age, na.rm = TRUE)) |>
+  mutate_all(.funs = janitor::round_half_up, digits = 1) |>
+  kable() |>
+  add_header_above(header = c("Age" = 2)) |>
+  kable_classic(full_width = FALSE)
 
 ```
 
 ### Gender
 ```{r}
 
+#inclusive den missings - hier macht es einen unterschied!
 
+# data_processed_after_exclusions |> 
+#   rename(Gender = gender) |>
+#   group_by(Gender) |> 
+#   summarise(n = n()) |> 
+#   mutate(Percent = paste0(round_half_up((n / sum(n)) * 100, 1), "%")) |>
+#   mutate(Gender = stringr::str_to_sentence(Gender)) |> 
+#   kable() |>
+#   kable_classic(full_width = FALSE)
+
+
+data_processed_after_exclusions |> 
+  filter(gender != "missing")|>
+  rename(Gender = gender) |>
+  group_by(Gender) |> 
+  summarise(n = n()) |> 
+  mutate(Percent = paste0(round_half_up((n / sum(n)) * 100, 1), "%")) |>
+  mutate(Gender = stringr::str_to_sentence(Gender)) |> 
+  kable() |>
+  kable_classic(full_width = FALSE)
 
 ```
 
@@ -115,7 +160,39 @@ data_processed_after_exclusions |>
 - Calculate Cronbach's alpha for each of the BFI subscales.
 
 ```{r}
+#subset or select - es kommt aufs gleiche, ich habe mich für select entschieden, weil mit subset die starts_with nicht so recht funktionieren wollte und ich lieber mit starts_with arbeiten würde, weil das weniger fehleranfällig ist, als die einzelnen Items rauszuschreiben (wo mir ein Fehlöer unterlaufen ist und ich es zum glück noch gemerkt habe)
 
+alpha_agreeableness <- data_processed_after_exclusions |>
+  select(starts_with("bfi_a")) |>
+  na.omit() |>
+  alpha()
+
+
+alpha_openness <- data_processed_after_exclusions |>
+  select(starts_with("bfi_o")) |>
+  na.omit() |>
+  alpha()
+
+alpha_openness <- data_processed_after_exclusions |>
+  select(starts_with("bfi_o")) |>
+  na.omit() |>
+  alpha()|>
+  print()
+          
+alpha_extroversion <- data_processed_after_exclusions |>
+  select(starts_with("bfi_e")) |>
+  na.omit() |>
+  alpha()
+
+alpha_neuroticism <- data_processed_after_exclusions |>
+  select(starts_with("bfi_n")) |>
+  na.omit() |>
+  alpha()
+
+alpha_conscientiousness <- data_processed_after_exclusions |>
+  select(starts_with("bfi_c")) |>
+  na.omit() |>
+  alpha()
 
 ```
 
@@ -123,7 +200,51 @@ data_processed_after_exclusions |>
 ## Plots
 - Create series of histograms of the distribution of scores on each of the BFI subscales and the IAT.
 
+### IAT Plots
 ```{r}
+
+#für beide Plots die gleichen Dimensionen verwendet, um sie besser zu vergleichen 
+ggplot(data_processed_after_exclusions, aes(x = mean1)) +
+  geom_histogram(binwidth = 100,
+                 color = "darkgreen",
+                 fill = "lightgreen") + 
+  xlab("Mean1") +
+  ylab("Frequency") +
+  theme_minimal() +
+  coord_cartesian(xlim = c(0, 5000)) +
+  theme(panel.grid.minor = element_blank())
+
+ggplot(data_processed_after_exclusions, aes(x = mean2)) +
+  geom_histogram(binwidth = 100,
+                 color = "darkblue",
+                 fill = "lightblue") + 
+  xlab("Mean2") +
+  ylab("Frequency") +
+  theme_minimal() +
+  coord_cartesian(xlim = c(0, 5000)) +
+  theme(panel.grid.minor = element_blank())
+
+
+```
+### BFI Plots
+```{r}
+
+mean_agree <- data_processed_after_exclusions|>
+  select(mean_agreeableness)|>
+  na.omit()
+
+ggplot(mean_agree, aes(x = mean_agreeableness))+
+  geom_histogram(binwidth = 0.10,
+                 color = "#330033",
+                 fill = "#993399") + 
+  xlab("Mean Agreeableness") +
+  ylab("Frequency") +
+  coord_cartesian(xlim = c(1, 6)) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank())
+
+
+
 
 
 ```
@@ -132,6 +253,27 @@ data_processed_after_exclusions |>
 - Create a table with a correlation matrix of the Pearson's r correlations between the IAT and the BFI subscales rounded to two decimal places. 
 
 ```{r}
+
+
+items_correlations <- data_processed_after_exclusions |>
+  select(starts_with(c("bfi_")), mean1, mean2) |>
+  cor(use = "pairwise.complete.obs")|>
+  round(2)|>
+  kable() |>
+  kable_classic(full_width = FALSE)|>
+  add_header_above(header = c("Correlation between BFI and IAT" = 47),  align = "c") |>
+  print()
+
+
+#nicht abspeichern, sondern nur tabelle machen, aber erst machen, sobald klar welche werte verwenden
+meanscores_correlations <- data_processed_after_exclusions |>
+  select(starts_with(c("mean"))) |>
+  cor(use = "pairwise.complete.obs")|>
+  round(2)|>
+  kable() |>
+  kable_classic(full_width = FALSE)|>
+  add_header_above(header = c("Correlation between BFI and IAT" = 8),  align = "left") |>
+  print()
 
 
 ```
@@ -143,26 +285,165 @@ data_processed_after_exclusions |>
 ```{r}
 
 
+data_t_test<- data_processed_after_exclusions|>
+    filter(gender %in% c("female", "male"))
+
+
+t_test_mean1 <- t.test(mean1 ~ gender, data = data_t_test)
+report_table(t_test_mean1)
+report_text(t_test_mean1)
+
+t_test_mean2 <- t.test(mean2 ~ gender, data = data_t_test)
+report_table(t_test_mean2)
+report_text(t_test_mean2)
+
+t_test_D <- t.test(D ~ gender, data = data_t_test)
+report_table(t_test_D)
+report_text(t_test_D)
+
+
+#Fazit: Da keine SIgnifkanz gegeben ist, kann man davon ausgehen, dass das Geschlecht den IAT Score nicht beeinflusst.
+
 ```
 
 ## Regressions
 - Run a series of regressions to test the hypotheses that each BFI subscale predicts IAT scores. Run separate regressions for each subscale rather than a multiple regression. Report and interpret the results using {report}.
 
+
+### Agreeableness
 ```{r}
+
+# for Agreeableness
+regression_agreeableness_mean1 <- lm(mean1 ~ mean_agreeableness, data = data_processed_after_exclusions)
+regression_agreeableness_mean2 <- lm(mean2 ~ mean_agreeableness, data = data_processed_after_exclusions)
+regression_agreeableness_D <- lm(D ~ mean_agreeableness, data = data_processed_after_exclusions)
+
+report(regression_agreeableness_mean1)
+summary(regression_agreeableness_mean1)
+
+report(regression_agreeableness_mean2)
+summary(regression_agreeableness_mean2)
+
+report(regression_agreeableness_D)
+summary(regression_agreeableness_D)
+```
+
+### Openness
+```{r}
+# for Openness
+regression_openness_mean1 <- lm(mean1 ~ mean_openness, data = data_processed_after_exclusions)
+regression_openness_mean2 <- lm(mean2 ~ mean_openness, data = data_processed_after_exclusions)
+regression_openness_D <- lm(D ~ mean_openness, data = data_processed_after_exclusions)
+
+report(regression_openness_mean1)
+summary(regression_openness_mean1)
+
+report(regression_openness_mean2)
+summary(regression_openness_mean2)
+
+report(regression_openness_D)
+summary(regression_openness_D)
+```
+
+### Extroversion
+```{r}
+# for Extroversion
+regression_extroversion_mean1 <- lm(mean1 ~ mean_extroversion, data = data_processed_after_exclusions)
+regression_extroversion_mean2 <- lm(mean2 ~ mean_extroversion, data = data_processed_after_exclusions)
+regression_extroversion_D <- lm(D ~ mean_extroversion, data = data_processed_after_exclusions)
+
+report(regression_extroversion_mean1)
+summary(regression_extroversion_mean1)
+
+report(regression_extroversion_mean2)
+summary(regression_extroversion_mean2)
+
+report(regression_extroversion_D)
+summary(regression_extroversion_D)
+```
+
+### Neuroticism
+```{r}
+# for Neuroticism
+regression_neuroticism_mean1 <- lm(mean1 ~ mean_neuroticism, data = data_processed_after_exclusions)
+regression_neuroticism_mean2 <- lm(mean2 ~ mean_neuroticism, data = data_processed_after_exclusions)
+regression_neuroticism_D <- lm(D ~ mean_neuroticism, data = data_processed_after_exclusions)
+
+report(regression_neuroticism_mean1)
+summary(regression_neuroticism_mean1)
+
+report(regression_neuroticism_mean2)
+summary(regression_neuroticism_mean2)
+
+report(regression_neuroticism_D)
+summary(regression_neuroticism_D)
+```
+
+### Conscientiousness
+```{r}
+# for Conscientiousness
+regression_conscientiousness_mean1 <- lm(mean1 ~ mean_conscientiousness, data = data_processed_after_exclusions)
+regression_conscientiousness_mean2 <- lm(mean2 ~ mean_conscientiousness, data = data_processed_after_exclusions)
+regression_conscientiousness_D <- lm(D ~ mean_conscientiousness, data = data_processed_after_exclusions)
+
+report(regression_conscientiousness_mean1)
+summary(regression_conscientiousness_mean1)
+
+report(regression_conscientiousness_mean2)
+summary(regression_conscientiousness_mean2)
+
+report(regression_conscientiousness_D)
+summary(regression_conscientiousness_D)
 
 
 ```
 
 
 # Plots
-- Create series of scatter plots of how BFI subscale scores predict IAT scores. Add regression lines. These plots therefore illustrate the same results as the regressions above. Make the plots presentable and publication quality- you may decide the details of this with one exception: Extreme scores on the IAT (defined as participants whose scores in the top and bottom 10% of IAT scores) should use a triangular shape rather than a dot. A single combined plot should be created, containing 5 component plots, with the personality facet being examined in each clearly labelled. This plot should be printed in the html file but also saved to disk as both png/pdf. 
+- Create series of scatter plots of how BFI subscale scores predict IAT scores. 
+Add regression lines. These plots therefore illustrate the same results as the regressions above. Make the plots presentable and publication quality- you may decide the details of this with one exception: Extreme scores on the IAT (defined as participants whose scores in the top and bottom 10% of IAT scores) should use a triangular shape rather than a dot. 
+
+## Agreeableness
 ```{r}
+
+# for Agreeableness
+
+```
+
+## Openness
+```{r}
+# for Openness
+
+```
+
+## Extroversion
+```{r}
+# for Extroversion
+
+```
+
+## Neuroticism
+```{r}
+# for Neuroticism
 
 
 ```
 
-## weitere Aufteilung folgt...
+## Conscientiousness
+```{r}
+# for Conscientiousness
 
+
+
+```
+
+## Combo Plot
+- A single combined plot should be created, containing 5 component plots, with the personality facet being examined in each clearly labelled. This plot should be printed in the html file but also saved to disk as both png/pdf. 
+```{r}
+
+
+
+```
 
 
 # Combining plots
@@ -181,7 +462,7 @@ Save plots to disk with `ggsave()`
 
 Save plots to disk with `ggsave()`
 
-\TODO Save the above combined plot to disk as both .png and .pdf. Ensure the png has at least 300dpi resolution.
+Save the above combined plot to disk as both .png and .pdf. Ensure the png has at least 300dpi resolution.
 
 ```{r}
 

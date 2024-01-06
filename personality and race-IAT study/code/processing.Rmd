@@ -312,12 +312,12 @@ maybe_duplicates <- duplicated(merged_data)
 #eleganter wäre es gewesen mit "starts_with" aber das hat leider nicht geklappt
 
 #openness <- c(bfi_o1, bfi_o2, bfi_o3, bfi_o4, bfi_o5, bfi_o6, bfi_o7, bfi_o8, bfi_o9)
-#agreeableness <- c(bfi_a1, bfi_a2, bfi_a3, bfi_a4, bfi_a5, bfi_a6, bfi_a7, bfi_a8, bfi_a9)
+#agreeableness <- c(bfi_a1, bfi_a2, bfi_a3, bfi_a4, bfi_a5, bfi_a6, bfi_a7, bfi_a8, bfi_a9, bfi_o10)
 
 data_bfi_ms_A_O <- data_bfi_A_O |>
   group_by(ID) |>
   summarize(mean_agreeableness = mean(c(bfi_a1, bfi_a2, bfi_a3, bfi_a4, bfi_a5, bfi_a6, bfi_a7, bfi_a8, bfi_a9)),
-            mean_openness = mean(c(bfi_o1, bfi_o2, bfi_o3, bfi_o4, bfi_o5, bfi_o6, bfi_o7, bfi_o8, bfi_o9)))
+            mean_openness = mean(c(bfi_o1, bfi_o2, bfi_o3, bfi_o4, bfi_o5, bfi_o6, bfi_o7, bfi_o8, bfi_o9, bfi_o10)))
 
 # extroversion <- c(bfi_e1, bfi_e2, bfi_e3, bfi_e4, bfi_e5, bfi_e6, bfi_e7, bfi_e8)
 # neuroticism <- c(bfi_n1, bfi_n2, bfi_n3, bfi_n4, bfi_n5, bfi_n6, bfi_n7, bfi_n8)
