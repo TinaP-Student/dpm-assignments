@@ -30,18 +30,13 @@ options(scipen = 999)
 library(tidyverse)
 library(knitr)
 library(kableExtra)
-# library(janitor)
+library(readr)
+library(dplyr)
+library(janitor)
 library(scales)
-# 
-# library("ggExtra")
+library(patchwork)
 library(ggplot2)
-# library("viridis") 
-# library("ggsci")
-# library(ggrepel)
-# library(ggmagnify)
-# library(ggridges)
-# library(patchwork)
-# library(easystats)
+library(patchwork)
 library(psych)
 library(report)
 
@@ -52,7 +47,7 @@ library(report)
 ```{r}
 #mache ichs chon am Anfang und für Reproduzierbarkeit
 
-set.seed(123) 
+set.seed(333) 
 
 ```
 
@@ -102,6 +97,17 @@ data_processed_after_exclusions |>
 ### Age
 ```{r}
 
+data_processed_after_exclusions |>
+  filter(age != "missing")|>
+  mutate(age = as.numeric(age)) |>
+  summarise(Mean = mean(age, na.rm = TRUE),
+            SD = sd(age, na.rm = TRUE))|>
+  mutate_all(.funs = janitor::round_half_up, digits = 1) |>
+  kable() |>
+  add_header_above(header = c("Age" = 2)) |>
+  kable_classic(full_width = FALSE)
+
+
 #alle Personen incl. die missings - interessanterweise macht es da keinen Unterschied!
 
 # data_processed_after_exclusions |>
@@ -112,34 +118,14 @@ data_processed_after_exclusions |>
 #   kable() |>
 #   add_header_above(header = c("Age" = 2)) |>
 #   kable_classic(full_width = FALSE)
+# 
 
 
-data_processed_after_exclusions |>
-  filter(age != "missing")|>
-  mutate(age = as.numeric(age)) |>
-  summarise(Mean = mean(age, na.rm = TRUE),
-            SD = sd(age, na.rm = TRUE)) |>
-  mutate_all(.funs = janitor::round_half_up, digits = 1) |>
-  kable() |>
-  add_header_above(header = c("Age" = 2)) |>
-  kable_classic(full_width = FALSE)
 
 ```
 
 ### Gender
 ```{r}
-
-#inclusive den missings - hier macht es einen unterschied!
-
-# data_processed_after_exclusions |> 
-#   rename(Gender = gender) |>
-#   group_by(Gender) |> 
-#   summarise(n = n()) |> 
-#   mutate(Percent = paste0(round_half_up((n / sum(n)) * 100, 1), "%")) |>
-#   mutate(Gender = stringr::str_to_sentence(Gender)) |> 
-#   kable() |>
-#   kable_classic(full_width = FALSE)
-
 
 data_processed_after_exclusions |> 
   filter(gender != "missing")|>
@@ -150,6 +136,20 @@ data_processed_after_exclusions |>
   mutate(Gender = stringr::str_to_sentence(Gender)) |> 
   kable() |>
   kable_classic(full_width = FALSE)
+
+#inclusive den missings - hier macht es einen unterschied!
+#ich habe diesen code sichtbar gelasen, weil 14% fehlende Daten doch recht eindrücklich sind
+
+data_processed_after_exclusions |>
+  rename(Gender = gender) |>
+  group_by(Gender) |>
+  summarise(n = n()) |>
+  mutate(Percent = paste0(round_half_up((n / sum(n)) * 100, 1), "%")) |>
+  mutate(Gender = stringr::str_to_sentence(Gender)) |>
+  kable() |>
+  kable_classic(full_width = FALSE)
+
+
 
 ```
 
@@ -172,12 +172,6 @@ alpha_openness <- data_processed_after_exclusions |>
   select(starts_with("bfi_o")) |>
   na.omit() |>
   alpha()
-
-alpha_openness <- data_processed_after_exclusions |>
-  select(starts_with("bfi_o")) |>
-  na.omit() |>
-  alpha()|>
-  print()
           
 alpha_extroversion <- data_processed_after_exclusions |>
   select(starts_with("bfi_e")) |>
@@ -194,86 +188,206 @@ alpha_conscientiousness <- data_processed_after_exclusions |>
   na.omit() |>
   alpha()
 
+
 ```
 
 
 ## Plots
 - Create series of histograms of the distribution of scores on each of the BFI subscales and the IAT.
 
-### IAT Plots
+### IAT Plot
 ```{r}
 
-#für beide Plots die gleichen Dimensionen verwendet, um sie besser zu vergleichen 
-ggplot(data_processed_after_exclusions, aes(x = mean1)) +
-  geom_histogram(binwidth = 100,
-                 color = "darkgreen",
-                 fill = "lightgreen") + 
-  xlab("Mean1") +
-  ylab("Frequency") +
-  theme_minimal() +
-  coord_cartesian(xlim = c(0, 5000)) +
-  theme(panel.grid.minor = element_blank())
+# I chose green because "Greenwald D" 
 
-ggplot(data_processed_after_exclusions, aes(x = mean2)) +
-  geom_histogram(binwidth = 100,
-                 color = "darkblue",
-                 fill = "lightblue") + 
-  xlab("Mean2") +
-  ylab("Frequency") +
+# -2 2 or -1 1 ~ Artikel lesen
+
+ggplot(data_processed_after_exclusions, aes(x = D)) +
+  geom_histogram(binwidth = 0.1,
+                 boundary = 1,
+                 color = "#000000",
+                 fill = "#446644",
+                 alpha = 0.75) +
+  labs(x = "D Score",
+       y = "Frequency",
+       title = "Distribution of D Score") +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(-2, 2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 4), limits = c(0, 23)) +
   theme_minimal() +
-  coord_cartesian(xlim = c(0, 5000)) +
-  theme(panel.grid.minor = element_blank())
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        axis.text = element_text(size = 10))
+
+
 
 
 ```
-### BFI Plots
-```{r}
 
+
+### BFI Plots
+alle Plots haben die gleichen Dimensionen, falls man sie verglecihen will, wird das so einfacher sein
+
+#### Agreeableness
+```{r}
+#verwende diesen DFatensatz, damit die Warnung nicht aufkommt, dass mehrere Rows entfernt worden sind
+#ebenfalls D inkludiert, damit ich diesen Datasatz wiederverwenden kann
 mean_agree <- data_processed_after_exclusions|>
-  select(mean_agreeableness)|>
+  select(mean_agreeableness, D)|>
   na.omit()
 
-ggplot(mean_agree, aes(x = mean_agreeableness))+
-  geom_histogram(binwidth = 0.10,
-                 color = "#330033",
-                 fill = "#993399") + 
-  xlab("Mean Agreeableness") +
-  ylab("Frequency") +
-  coord_cartesian(xlim = c(1, 6)) +
+#Die Farben wurden so gewählt, dass sie sich genug abheben und dass sie mir gefallen :)
+#Wenn es ganz nach mir gehen würde, wäre jedereinzelne Plot in einer Gelbvariation
+
+ggplot(mean_agree, aes(x = mean_agreeableness)) +
+  geom_histogram(binwidth = 0.2,
+                 boundary = 1,
+                 color = "#000000",
+                 fill = "#AF5FAF",
+                 alpha = 0.75) +
+  labs(x = "Mean Agreeableness",
+       y = "Frequency",
+       title = "Distribution of Mean Agreeableness") +
   theme_minimal() +
-  theme(panel.grid.minor = element_blank())
-
-
-
-
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"), 
+        axis.text = element_text(size = 10),
+        panel.grid.minor = element_blank()) +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1,6)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(0, 17)) 
 
 ```
+
+
+#### Openness
+```{r}
+#verwende diesen DFatensatz, damit die Warnung nicht aufkommt, dass mehrere Rows entfernt worden sind
+mean_open <- data_processed_after_exclusions|>
+  select(mean_openness, D)|>
+  na.omit()
+
+ggplot(mean_open, aes(x = mean_openness)) +
+  geom_histogram(binwidth = 0.2,
+                 boundary = 1,
+                 color = "#000000",
+                 fill = "#FF7F00",
+                 alpha = 0.75) +
+  labs(x = "mean Openness",
+       y = "Frequency") +
+  theme_minimal() +
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"), 
+        axis.text = element_text(size = 10),
+        panel.grid.minor = element_blank()) +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1,6)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(0, 17)) +
+  labs(title = "Distribution of mean Openness")
+
+```
+
+#### Extroversion
+```{r}
+#verwende diesen DFatensatz, damit die Warnung nicht aufkommt, dass mehrere Rows entfernt worden sind
+mean_extro <- data_processed_after_exclusions|>
+  select(mean_extroversion, D)|>
+  na.omit()
+
+ggplot(mean_extro, aes(x = mean_extroversion)) +
+  geom_histogram(binwidth = 0.2,
+                 boundary = 1,
+                 color = "#000000",
+                 fill = "#E41A1C",
+                 alpha = 0.75) +
+  labs(x = "mean Extroversion",
+       y = "Frequency") +
+  theme_minimal() +
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"), 
+        axis.text = element_text(size = 10),
+        panel.grid.minor = element_blank()) +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1,6)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(0, 17)) +
+  labs(title = "Distribution of mean Extroversion")
+
+```
+
+#### Neuroticism
+```{r}
+#verwende diesen DFatensatz, damit die Warnung nicht aufkommt, dass mehrere Rows entfernt worden sind
+mean_neuro <- data_processed_after_exclusions|>
+  select(mean_neuroticism, D)|>
+  na.omit()
+
+
+ggplot(mean_neuro, aes(x = mean_neuroticism)) +
+  geom_histogram(binwidth = 0.2,
+                 boundary = 1,
+                 color = "#000000",
+                 fill = "#87CEEB",
+                 alpha = 0.75) +
+  labs(x = "mean Neuroticism",
+       y = "Frequency") +
+  theme_minimal() +
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"), 
+        axis.text = element_text(size = 10),
+        panel.grid.minor = element_blank()) +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1,6)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(0, 17)) +
+  labs(title = "Distribution of mean Neuroticism")
+
+```
+
+#### Conscientious
+```{r}
+#verwende diesen DFatensatz, damit die Warnung nicht aufkommt, dass mehrere Rows entfernt worden sind
+mean_cons <- data_processed_after_exclusions|>
+  select(mean_conscientiousness, D)|>
+  na.omit()
+
+ggplot(mean_cons, aes(x = mean_conscientiousness)) +
+  geom_histogram(binwidth = 0.2,
+                 boundary = 1,
+                 color = "#000000",
+                 fill = "#27d08b",
+                 alpha = 0.75) +
+  labs(x = "mean Conscientiousness",
+       y = "Frequency") +
+  theme_minimal() +
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"), 
+        axis.text = element_text(size = 10),
+        panel.grid.minor = element_blank()) +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1,6)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(0, 17)) +
+  labs(title = "Distribution of mean Conscientiousness")
+
+```
+
 
 ## Correlation between IAT and BFI
 - Create a table with a correlation matrix of the Pearson's r correlations between the IAT and the BFI subscales rounded to two decimal places. 
 
 ```{r}
 
-
-items_correlations <- data_processed_after_exclusions |>
-  select(starts_with(c("bfi_")), mean1, mean2) |>
+# meanscores_correlations  
+data_processed_after_exclusions |>
+  select(D, starts_with(c("mean_"))) |>
   cor(use = "pairwise.complete.obs")|>
   round(2)|>
   kable() |>
   kable_classic(full_width = FALSE)|>
-  add_header_above(header = c("Correlation between BFI and IAT" = 47),  align = "c") |>
-  print()
+  add_header_above(header = c("Correlation between BFI Scales and IAT" = 7),  align = "left")
 
 
-#nicht abspeichern, sondern nur tabelle machen, aber erst machen, sobald klar welche werte verwenden
-meanscores_correlations <- data_processed_after_exclusions |>
-  select(starts_with(c("mean"))) |>
-  cor(use = "pairwise.complete.obs")|>
-  round(2)|>
-  kable() |>
-  kable_classic(full_width = FALSE)|>
-  add_header_above(header = c("Correlation between BFI and IAT" = 8),  align = "left") |>
-  print()
+
+# items_correlations  wollte ich noch zusätzlich machen aus Interesse
+# data_processed_after_exclusions |>
+#   select(D, starts_with(c("bfi_"))) |>
+#   cor(use = "pairwise.complete.obs")|>
+#   round(2)|>
+#   kable() |>
+#   kable_classic(full_width = FALSE)|>
+#   add_header_above(header = c("Correlation between BFI Items and IAT" = 46),  align = "c") 
 
 
 ```
@@ -282,183 +396,389 @@ meanscores_correlations <- data_processed_after_exclusions |>
 
 ## T Test
 - Run a t-test to test the hypothesis that men and women differ on their scores on the IAT. Report and interpret the results using {report}.
+
+Fazit: Da keine Signifkanz gegeben ist, kann man davon ausgehen, dass das Geschlecht den IAT Score nicht beeinflusst.
+
 ```{r}
 
 
 data_t_test<- data_processed_after_exclusions|>
     filter(gender %in% c("female", "male"))
 
-
-t_test_mean1 <- t.test(mean1 ~ gender, data = data_t_test)
-report_table(t_test_mean1)
-report_text(t_test_mean1)
-
-t_test_mean2 <- t.test(mean2 ~ gender, data = data_t_test)
-report_table(t_test_mean2)
-report_text(t_test_mean2)
-
 t_test_D <- t.test(D ~ gender, data = data_t_test)
 report_table(t_test_D)
 report_text(t_test_D)
 
 
-#Fazit: Da keine SIgnifkanz gegeben ist, kann man davon ausgehen, dass das Geschlecht den IAT Score nicht beeinflusst.
+# t_test_mean1 <- t.test(mean1 ~ gender, data = data_t_test)
+# report_table(t_test_mean1)
+# report_text(t_test_mean1)
+# 
+# t_test_mean2 <- t.test(mean2 ~ gender, data = data_t_test)
+# report_table(t_test_mean2)
+# report_text(t_test_mean2)
+
+
+
+
 
 ```
 
 ## Regressions
 - Run a series of regressions to test the hypotheses that each BFI subscale predicts IAT scores. Run separate regressions for each subscale rather than a multiple regression. Report and interpret the results using {report}.
 
+Ich habe alle Facetten ein hgeading gegeben, wenn man den Code rennt, dass man die Sachen dann beiannder hat und summary ebenfalls gemacht, weil ich das hilfreich fand
+ausserdem habe ich auch Regressionen für mean1 und mean2 gemacht, weil ich die aufgabe zuerst falsch verstanden habe und anstatt sie zu löschen, habe ich sie in hashtags gesetzt - man weiss nie, wann was doch nützlich sein könnte
 
 ### Agreeableness
 ```{r}
 
 # for Agreeableness
-regression_agreeableness_mean1 <- lm(mean1 ~ mean_agreeableness, data = data_processed_after_exclusions)
-regression_agreeableness_mean2 <- lm(mean2 ~ mean_agreeableness, data = data_processed_after_exclusions)
 regression_agreeableness_D <- lm(D ~ mean_agreeableness, data = data_processed_after_exclusions)
-
-report(regression_agreeableness_mean1)
-summary(regression_agreeableness_mean1)
-
-report(regression_agreeableness_mean2)
-summary(regression_agreeableness_mean2)
-
 report(regression_agreeableness_D)
 summary(regression_agreeableness_D)
+
+# regression_agreeableness_mean1 <- lm(mean1 ~ mean_agreeableness, data = data_processed_after_exclusions)
+# regression_agreeableness_mean2 <- lm(mean2 ~ mean_agreeableness, data = data_processed_after_exclusions)
+# 
+# 
+# report(regression_agreeableness_mean1)
+# summary(regression_agreeableness_mean1)
+# 
+# report(regression_agreeableness_mean2)
+# summary(regression_agreeableness_mean2)
+
+
 ```
 
 ### Openness
 ```{r}
 # for Openness
-regression_openness_mean1 <- lm(mean1 ~ mean_openness, data = data_processed_after_exclusions)
-regression_openness_mean2 <- lm(mean2 ~ mean_openness, data = data_processed_after_exclusions)
 regression_openness_D <- lm(D ~ mean_openness, data = data_processed_after_exclusions)
-
-report(regression_openness_mean1)
-summary(regression_openness_mean1)
-
-report(regression_openness_mean2)
-summary(regression_openness_mean2)
-
 report(regression_openness_D)
 summary(regression_openness_D)
+
+
+# regression_openness_mean1 <- lm(mean1 ~ mean_openness, data = data_processed_after_exclusions)
+# regression_openness_mean2 <- lm(mean2 ~ mean_openness, data = data_processed_after_exclusions)
+# 
+# report(regression_openness_mean1)
+# summary(regression_openness_mean1)
+# 
+# report(regression_openness_mean2)
+# summary(regression_openness_mean2)
+
+
 ```
 
 ### Extroversion
 ```{r}
 # for Extroversion
-regression_extroversion_mean1 <- lm(mean1 ~ mean_extroversion, data = data_processed_after_exclusions)
-regression_extroversion_mean2 <- lm(mean2 ~ mean_extroversion, data = data_processed_after_exclusions)
 regression_extroversion_D <- lm(D ~ mean_extroversion, data = data_processed_after_exclusions)
-
-report(regression_extroversion_mean1)
-summary(regression_extroversion_mean1)
-
-report(regression_extroversion_mean2)
-summary(regression_extroversion_mean2)
-
 report(regression_extroversion_D)
 summary(regression_extroversion_D)
+
+# regression_extroversion_mean1 <- lm(mean1 ~ mean_extroversion, data = data_processed_after_exclusions)
+# regression_extroversion_mean2 <- lm(mean2 ~ mean_extroversion, data = data_processed_after_exclusions)
+# 
+# report(regression_extroversion_mean1)
+# summary(regression_extroversion_mean1)
+# 
+# report(regression_extroversion_mean2)
+# summary(regression_extroversion_mean2)
+
+
 ```
 
 ### Neuroticism
 ```{r}
 # for Neuroticism
-regression_neuroticism_mean1 <- lm(mean1 ~ mean_neuroticism, data = data_processed_after_exclusions)
-regression_neuroticism_mean2 <- lm(mean2 ~ mean_neuroticism, data = data_processed_after_exclusions)
+
 regression_neuroticism_D <- lm(D ~ mean_neuroticism, data = data_processed_after_exclusions)
-
-report(regression_neuroticism_mean1)
-summary(regression_neuroticism_mean1)
-
-report(regression_neuroticism_mean2)
-summary(regression_neuroticism_mean2)
-
 report(regression_neuroticism_D)
 summary(regression_neuroticism_D)
+
+
+# regression_neuroticism_mean1 <- lm(mean1 ~ mean_neuroticism, data = data_processed_after_exclusions)
+# regression_neuroticism_mean2 <- lm(mean2 ~ mean_neuroticism, data = data_processed_after_exclusions)
+# 
+# report(regression_neuroticism_mean1)
+# summary(regression_neuroticism_mean1)
+# 
+# report(regression_neuroticism_mean2)
+# summary(regression_neuroticism_mean2)
+
 ```
 
 ### Conscientiousness
 ```{r}
 # for Conscientiousness
-regression_conscientiousness_mean1 <- lm(mean1 ~ mean_conscientiousness, data = data_processed_after_exclusions)
-regression_conscientiousness_mean2 <- lm(mean2 ~ mean_conscientiousness, data = data_processed_after_exclusions)
+
 regression_conscientiousness_D <- lm(D ~ mean_conscientiousness, data = data_processed_after_exclusions)
-
-report(regression_conscientiousness_mean1)
-summary(regression_conscientiousness_mean1)
-
-report(regression_conscientiousness_mean2)
-summary(regression_conscientiousness_mean2)
-
 report(regression_conscientiousness_D)
 summary(regression_conscientiousness_D)
+
+# regression_conscientiousness_mean1 <- lm(mean1 ~ mean_conscientiousness, data = data_processed_after_exclusions)
+# regression_conscientiousness_mean2 <- lm(mean2 ~ mean_conscientiousness, data = data_processed_after_exclusions)
+# 
+# report(regression_conscientiousness_mean1)
+# summary(regression_conscientiousness_mean1)
+# 
+# report(regression_conscientiousness_mean2)
+# summary(regression_conscientiousness_mean2)
 
 
 ```
 
 
-# Plots
+
+
+# BFI Scatter Plots
+
 - Create series of scatter plots of how BFI subscale scores predict IAT scores. 
 Add regression lines. These plots therefore illustrate the same results as the regressions above. Make the plots presentable and publication quality- you may decide the details of this with one exception: Extreme scores on the IAT (defined as participants whose scores in the top and bottom 10% of IAT scores) should use a triangular shape rather than a dot. 
 
-## Agreeableness
+
+
+## Single Plots
+- single plots
+
+
+### Agreeableness
 ```{r}
 
 # for Agreeableness
 
+#ich verwende den Datensatz aus der vorherigen Aufgabe, wo wir Plots erstellen mussten, damit ich keine unnötige Fehlerwarnung erhalte
+mean_agree$extreme <- ifelse(mean_agree$D >= quantile(mean_agree$D, 0.9) |
+                               mean_agree$D <= quantile(mean_agree$D, 0.1),
+                     "extreme", "not extreme")
+
+# Scatter plot with regression lines
+#für Classic entschieden, weil in den meisten Publications der Hintergrund blank ist und alles sehr minimalistisch gehalten wird
+#Capitalize words
+#verwende helle vs dunkle Farbe, damit auch farbenblinde den Kontrast erkennen können, nebst der Form 
+#in publicationen ist nicht üblich die Titel oder ähnliches fett zu drucken, aber du hast gemeint, wir haben da Freihjeiten, solange es presentable ist und ich glaube fette Titel machen es presentable
+#die limits sind etwas weiter gesetzt, damit die Punkte gut dargestellt werden köännen und nicht womöglich abgeschnitten werden
+#f¨r die y- achse habe ich sechs breaks gewählt, damit man die 0.5 und 1 besser differenzieren kann - und die boundarys bis -2 bis 2, weil dass der min und max vom D score ist, weil mit -1 und 1 könnte man den Eindruck erhalten, dass die Variation grlsser ist als sie tatsächlich ist
+
+
+plot_agree <- ggplot(mean_agree, aes(x = mean_agreeableness, y = D)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
+  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
+                     name = "Extreme D Score",
+                     labels = c("Top or Bottom 10%", "Not Extreme")) +
+  scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#fb75fb"),
+                    name = "Extreme D Score",
+                    labels = c("Top or Bottom 10%", "Not Extreme")) +
+  geom_smooth(method = "lm", color = "#f915f9", se = TRUE) +
+  labs(x = "Mean Agreeableness Score",
+       y = "D Score",
+       title = "Scatter Plot of Mean Agreeableness Predicting the D score") +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  expand_limits(x = c(1, 6), y = c(-1, 1)) +
+  coord_cartesian(expand = FALSE) +
+  theme_classic() +
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold")) 
+  
+print(plot_agree)
+
 ```
 
-## Openness
+### Openness
 ```{r}
 # for Openness
 
+mean_open$extreme <- ifelse(mean_open$D >= quantile(mean_open$D, 0.9) |
+                               mean_open$D <= quantile(mean_open$D, 0.1),
+                     "extreme", "not extreme")
+
+plot_open <- ggplot(mean_open, aes(x = mean_openness, y = D)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
+  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
+                     name = "Extreme D Score",
+                     labels = c("Top or Bottom 10%", "Not Extreme")) +
+  scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#ff9347"),
+                    name = "Extreme D Score",
+                    labels = c("Top or Bottom 10%", "Not Extreme")) +
+  geom_smooth(method = "lm", color = "orange", se = TRUE) +
+  labs(x = "Mean Openness Score",
+       y = "D Score",
+       title = "Scatter Plot of Mean Openness Predicting the D score") +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  expand_limits(x = c(1, 6), y = c(-1, 1)) +
+  coord_cartesian(expand = FALSE) +
+  theme_classic() +
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"), 
+        axis.text = element_text(size = 10)) 
+
+print(plot_open)
+
 ```
 
-## Extroversion
+### Extroversion
 ```{r}
 # for Extroversion
 
+mean_extro$extreme <- ifelse(mean_extro$D >= quantile(mean_extro$D, 0.9) |
+                               mean_extro$D <= quantile(mean_extro$D, 0.1),
+                     "extreme", "not extreme")
+
+plot_extro <- ggplot(mean_extro, aes(x = mean_extroversion, y = D)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
+  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
+                     name = "Extreme D Score",
+                     labels = c("Top or Bottom 10%", "Not Extreme")) +
+  scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#ed5e5f"),
+                    name = "Extreme D Score",
+                    labels = c("Top or Bottom 10%", "Not Extreme")) +
+  geom_smooth(method = "lm", color = "#f80609", se = TRUE) +
+  labs(x = "Mean Extroversion Score",
+       y = "D Score",
+       title = "Scatter Plot of Mean Extroversion Predicting the D score") +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  expand_limits(x = c(1, 6), y = c(-1, 1)) +
+  coord_cartesian(expand = FALSE) +
+  theme_classic() +
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"), 
+        axis.text = element_text(size = 10))
+
+print(plot_extro)
+
 ```
 
-## Neuroticism
+### Neuroticism
 ```{r}
 # for Neuroticism
 
+mean_neuro$extreme <- ifelse(mean_neuro$D >= quantile(mean_neuro$D, 0.9) |
+                               mean_neuro$D <= quantile(mean_neuro$D, 0.1),
+                     "extreme", "not extreme")
+
+plot_neuro <- ggplot(mean_neuro, aes(x = mean_neuroticism, y = D)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
+  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
+                     name = "Extreme D Score",
+                     labels = c("Top or Bottom 10%", "Not Extreme")) +
+  scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#87CEEB"),
+                    name = "Extreme D Score",
+                    labels = c("Top or Bottom 10%", "Not Extreme")) +
+  geom_smooth(method = "lm", color = "#1a1ce4", se = TRUE) +
+  labs(x = "Mean Neuroticism Score",
+       y = "D Score",
+       title = "Scatter Plot of Mean Neuroticism Predicting the D score") +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  expand_limits(x = c(1, 6), y = c(-1, 1)) +
+  coord_cartesian(expand = FALSE) +
+  theme_classic() +
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"), 
+        axis.text = element_text(size = 10)) 
+
+print(plot_neuro)
 
 ```
 
-## Conscientiousness
+### Conscientiousness
 ```{r}
 # for Conscientiousness
 
+mean_cons$extreme <- ifelse(mean_cons$D >= quantile(mean_cons$D, 0.9) |
+                               mean_cons$D <= quantile(mean_cons$D, 0.1),
+                     "extreme", "not extreme")
 
+plot_cons <- ggplot(mean_cons, aes(x = mean_conscientiousness, y = D)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
+  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
+                     name = "Extreme D Score",
+                     labels = c("Top or Bottom 10%", "Not Extreme")) +
+  scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#27d08b"),
+                    name = "Extreme D Score",
+                    labels = c("Top or Bottom 10%", "Not Extreme")) +
+  geom_smooth(method = "lm", color = "#00757b", se = TRUE) +
+  labs(x = "Mean Conscientiousness Score",
+       y = "D Score",
+       title = "Scatter Plot of Mean Conscientiousness Predicting the D score") +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  expand_limits(x = c(1, 6), y = c(-1, 1)) +
+  coord_cartesian(expand = FALSE) +
+  theme_classic() +
+  theme(title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"), 
+        axis.text = element_text(size = 10)) 
+
+print(plot_cons)
 
 ```
 
-## Combo Plot
-- A single combined plot should be created, containing 5 component plots, with the personality facet being examined in each clearly labelled. This plot should be printed in the html file but also saved to disk as both png/pdf. 
-```{r}
 
 
 
-```
+## BFI Plots combining
 
-
-# Combining plots
-
+- A single combined plot should be created, containing 5 component plots, with the personality facet being examined in each clearly labelled. This plot should be printed in the html file but also saved to disk as both png/pdf.
 - Combine these scatter plots into one ggplot object using {patchwork} and print the combined plot in your .Rmd and .html. Save the combined plot to disk as a .pdf and .png in the "communications" folder.
 
-Combine plots using patchwork: https://patchwork.data-imaginist.com/
-Save plots to disk with `ggsave()`
+I think this is the same task?
 
 ```{r}
+
+#ich hab mich für dieses Layout entschieden, weil es mir gefällt und ich mit diesem Layout experimentieren wollte
+layout <- "
+A#B
+#C#
+D#E
+"
+
+#seperate Guide, damit nicht fünf mal die selbe Guide in anderen Farben auftaucht
+plot_guide <- ggplot(mean_cons, aes(x = mean_conscientiousness, y = D)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(shape = extreme)) +
+  scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
+                     name = "Extreme D Score",
+                     labels = c("Top or Bottom 10%", "Not Extreme"))
+
+#G existiert nicht, deshalb wird der Plot gedroptt, aber die Legende wird behalten
+plot_temp <- wrap_plots(A = plot_agree + labs(title = "Agreeableness") + theme(legend.position = "none"),
+                   B = plot_open + labs(title = "Openness") + theme(legend.position = "none"), 
+                   C = plot_extro + labs(title = "Extroversion") + theme(legend.position = "none"), 
+                   D = plot_neuro + labs(title = "Neuroticism") + theme(legend.position = "none"), 
+                   E = plot_cons + labs(title = "Conscientiousness") + theme(legend.position = "none"),
+                   G = plot_guide,
+                   design = layout) +
+  theme_classic()
+
+
+plot_comb_bfi <- plot_temp + plot_layout(guides = 'collect', design = layout) &
+  theme(axis.title = element_text(face = "plain"),
+        legend.title = element_text(face = "bold"),
+        plot.title = element_text(face = "bold"))  &
+  plot_annotation(title = "Scatter Plots of the BFI Subscales Prediciting the D Score",
+                  theme = theme(plot.title = element_text(size = 16, face = "bold"))) 
+
+
+
+
+#its not pretty, but if you open the png or pdf, it's in a much butter resdolution
+#die eine Warnung kann man ignorieren, die bezieht sich auf die plot_guide, dies ist beuwsst gemacht
+print(plot_comb_bfi)
 
 
 ```
 
-## Saving plots
+### Saving plot
 
 Save plots to disk with `ggsave()`
 
@@ -467,9 +787,9 @@ Save the above combined plot to disk as both .png and .pdf. Ensure the png has a
 ```{r}
 
 
-ggsave("../data/communications/XXX.png", plot = XXXX, dpi = 300, device = "png")
+ggsave("../communications/plot_comb_bfi.png", plot = plot_comb_bfi,  width = 16, height = 8, dpi = 300, device = "png")
 
-ggsave("../data/communications/XXX.pdf", plot = XXXX, device = "pdf")
+ggsave("../communications/plot_comb_bfi.pdf", plot = plot_comb_bfi,width = 16, height = 8, device = "pdf")
 
 
 ```

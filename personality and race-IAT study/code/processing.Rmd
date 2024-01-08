@@ -28,10 +28,7 @@ library(janitor)
 library(stringr)
 library(readr)
 library(dplyr)
-# library(tidyr)
 library(knitr)
-# library(kableExtra)
-# library(stringr)
 library(openxlsx)
 
 
@@ -203,7 +200,7 @@ cor_neuroticism <- cor(data_bfi_sc_neuroticism)
 
 
 # Openness hat 9 items
-# openness <- c("bfi_o1", "bfi_o2", "bfi_o3", "bfi_o4", "bfi_o5", "bfi_o6", "bfi_o7", "bfi_o8", "bfi_o9")
+# openness <- c("bfi_o1", "bfi_o2", "bfi_o3", "bfi_o4", "bfi_o5", "bfi_o6", "bfi_o7", "bfi_o8", "bfi_o9", "bfi_o10")
 
 data_bfi_sc_openness <- data_raw_bfi_adjusted |>
   select(starts_with("bfi_o")) |>
@@ -441,7 +438,6 @@ data_iat_trials_exclusions <- data_raw_iat |>
   mutate(exclude_fast = if_else(fast_rt > 0.10, "exclude", "include"),
          exclude_accuracy = if_else(average_accuracy < 0.75, "exclude", "include"))|>
   ungroup()
-
 
 
 ##zuerst getrennt gemacht, um eine bessere Übersicht zu haben

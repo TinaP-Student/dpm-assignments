@@ -59,14 +59,14 @@ dat_age_gender <- data_demographics_raw |>
   pivot_wider(names_from = trialcode,
               values_from = response) |>
   mutate(gender = tolower(gender),
-         gender = stringr::str_remove_all(gender, regex("\\W+")), # regex is both very useful and awful to write
+         gender = stringr::str_remove_all(gender, regex("\\W+")), 
          gender = case_when(gender == "female" ~ gender,
                             gender == "male" ~ gender,
                             gender == "nonbinary" ~ gender,
                             gender == "woman" ~ "female",
                             gender == "man" ~ "male",
                             TRUE ~ "other/missing/error"),
-         age = case_when(str_detect(age, "^[0-9]+$") ~ age, # if the value is only numbers, keep it. 
+         age = case_when(str_detect(age, "^[0-9]+$") ~ age, 
                          TRUE ~ "other/missing/error")) 
 
 ```
