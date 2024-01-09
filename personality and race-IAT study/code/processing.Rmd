@@ -19,6 +19,19 @@ knitr::opts_chunk$set(message = FALSE,
 
 ```
 
+# Note
+- Task
+
+commentary
+```{r}
+
+#commentary
+
+c("code")
+
+
+```
+
 # Dependencies
 
 ```{r}
@@ -48,8 +61,9 @@ data_raw_demographics <- read_csv("../data/raw/data_raw_demographics.csv") |>
 data_raw_bfi <- read_csv("../data/raw/data_raw_bfi.csv") |>
   janitor::clean_names()
 
+#renamed the columns and 
+#sliced the first row, because of the additional columnsnames
 #data_raw_iat
-#renamed the columns and sliced the first row, because of the additional columnsnames
 data_raw_iat <- read_csv("../data/raw/data_raw_iat.csv") |>
   janitor::clean_names()|>
   rename(ID = participant, block_number = block, block_required_responses = 3, trial_response = trial, trial_accuracy = 5, reaction_time = 6)|>
@@ -60,10 +74,10 @@ data_raw_iat <- read_csv("../data/raw/data_raw_iat.csv") |>
 
 # Demographics
 - Extract age and gender from the raw demographics data.
-
 ```{r}
-#zuerst in eine Wideform bringen - sex in gender und unique id in id umbenennen
-#muss jetzt schon NA in ID droppen, weil ich sonst die Daten nicht anschauen kann und R abstürzt
+#in wide form and renameed "sex" to "gender" (in the tasks gender is mentioned) and "unique id" to "id"
+#already dropped the NA to ID, because otherwise I can't view the data and R crashes sometimes
+
 data_a_g <- data_raw_demographics|>
   na.omit(data_raw_demographics$unique_id)|> 
   pivot_wider(names_from = variable,
@@ -72,11 +86,15 @@ data_a_g <- data_raw_demographics|>
   
 
 unique(data_a_g$age)
-unique(data_a_g$gender) #wie sie die Geschlechtsangabe erfasst haben -> nur m und f or NAs
-unique(duplicated(data_a_g$ID)) #ob es Duplicate gibt - anscheinend nicht
+#to see how the gender was recorded -> only m, f or NAs
+unique(data_a_g$gender)
+#to see if there are duplicates, does not seem to be the case
+unique(duplicated(data_a_g$ID)) 
 
 
-#droppe die NAs nicht, weil man die Subjects auch ohne gebrauchen kann - mache sie nur zu missing
+#renamed "f" & "m" to "female" and "male" and indicated the NAs as missing
+#missing data here, are not reasons for exclusion, that's why just missing
+#still checked whether the age was only recorded in numbers, otherwise missing
 data_age_gender <- data_a_g |> 
   mutate(gender = stringr::str_remove_all(gender, regex("\\W+")), 
          gender = case_when(gender == "f" ~ "female",
@@ -86,13 +104,11 @@ data_age_gender <- data_a_g |>
                          TRUE ~ "missing"))
 
 
-
-#extrahiere
-data_age <- data_age_gender |>
-  select(ID, age)
-
-data_gender <- data_age_gender|>
-  select(ID, gender)
+# data_age <- data_age_gender |>
+#   select(ID, age)
+# 
+# data_gender <- data_age_gender|>
+#   select(ID, gender)
 
 
 
@@ -101,27 +117,28 @@ data_gender <- data_age_gender|>
 # BFI Scale
 
 ## Scale adjusting 
--  Reverse score the negatively worded items: the 
-agreeableness 1, 3, 6, and 8, and 
-openness items 7 and 9.
-
-extroversion scale items 2, 5 and 7,  
-conscientiousness items 2, 4 5 and 9, 
-neuroticism items 2, 5, and 7, 
-
-
-
+-  Reverse score the negatively worded items: the extroversion scale items 2, 5 and 7, conscientiousness items 2, 4 5 and 9, neuroticism items 2, 5, and 7, agreeableness 1, 3, 6, and 8, and openness items 7 and 9. 
 ```{r}
+# only goes up to 1-6, but the 0, 7 and NA will be dealt with later
+# have created lists of which items need to be reversed to keep it clearer
 
-#geht nur bis 1-6, aber die 0, 7 und NA werden später behandelt
-#habe Listen erzeugt, welche Items reversed werden müssen, um es übersichtlicher zu halten
+# agreeableness 1, 3, 6, and 8, and 
 r_agreeableness <- c("bfi_a1", "bfi_a3", "bfi_a6", "bfi_a8")
+
+# openness items 7 and 9.
 r_openness <- c("bfi_o7", "bfi_o9")
+
+# neuroticism items 2, 5, and 7,
 r_neuroticism <- c("bfi_n2", "bfi_n5", "bfi_n7")
+
+# conscientiousness items 2, 4 5 and 9, 
 r_conscientiousness <- c("bfi_c2", "bfi_c4","bfi_c5", "bfi_c9")
+
+# extroversion scale items 2, 5 and 7, 
 r_extroversion <- c("bfi_e2", "bfi_e5", "bfi_e7")
 
-#reverse die Angaben mit case_when
+
+#reverse the specifications with case_when
 data_raw_bfi_adjusted <- data_raw_bfi |>
   rename(ID = unique_id) |> 
   mutate_at(vars(r_agreeableness, r_openness, r_neuroticism, r_conscientiousness, r_extroversion), list(~ case_when(
@@ -138,29 +155,18 @@ data_raw_bfi_adjusted <- data_raw_bfi |>
 ### Sanity Check
 - Include a sanity check that assesses whether these list of item reversals, and your implementation of them, is likely to be correct: For each subscale, create a correlation table among the items (after reversals) and check that all correlations are positive. 
  
+*The correlations are all positive, so the reverse seems to have worked.*
+
+"sc_" stands for sanity check. 
+
+I looked at each subscales and filtered the answers by 1-6, so NA and 0 and 7 are dropped.
 ```{r}
-#erzeuge die Subskalen und filtere die Antworten nach 1-6, somit werden die NA und 0 und 7 als Antworten ignoriert
-
-#sc_ steht für sanity check
-
-#um die genauen namen zu sehen und wie viele Items jeweils nötig sind
+#to see the exact names and how many items are required in each subscale
 colnames(data_raw_bfi_adjusted)
 
 
-#Die Korrelationen sind alle positiv, scheint dass der Reverse funktioniert hat
+#Agreeableness has 9 items
 
-
-# Agreeableness hat 9 items
-
-#first try
-# agreeableness = c("bfi_a1", "bfi_a2", "bfi_a3", "bfi_a4", "bfi_a5", "bfi_a6", "bfi_a7", "bfi_a8", "bfi_a9")
-# 
-# data_bfi_sc_agreeableness <- data_raw_bfi_adjusted |>
-#   select(agreeableness) |>
-#   filter_all(all_vars(. %in% 1:6)) |>
-#   na.omit()
-
-#modified try with starts_with
 data_bfi_sc_agreeableness <- data_raw_bfi_adjusted |>
   select(starts_with("bfi_a")) |>
   filter_all(all_vars(. %in% 1:6)) |>
@@ -169,7 +175,8 @@ data_bfi_sc_agreeableness <- data_raw_bfi_adjusted |>
 cor_agreeableness <- cor(data_bfi_sc_agreeableness)
 
 
-#Testversuch wie es aussieht, wenn die Items nicht reversed sind!
+#Test how it looks when the items are not reversed! -> Conclusion: the reversion worked
+
 # NOT_REVER_data_bfi_agreeableness <- data_raw_bfi |>
 #   select(starts_with("bfi_a")) |>
 #   filter_all(all_vars(. %in% 1:6)) |>
@@ -177,7 +184,9 @@ cor_agreeableness <- cor(data_bfi_sc_agreeableness)
 # 
 # NOT_REVER_cor_agreeableness <- cor(NOT_REVER_data_bfi_agreeableness)
 
-# Conscientiousness hat 9 items
+
+
+# Conscientiousness has 9 items
 # conscientiousness<- c("bfi_c1", "bfi_c2", "bfi_c3", "bfi_c4", "bfi_c5", "bfi_c6", "bfi_c7", "bfi_c8", "bfi_c9")
 
 data_bfi_sc_conscientiousness <- data_raw_bfi_adjusted |>
@@ -188,7 +197,7 @@ data_bfi_sc_conscientiousness <- data_raw_bfi_adjusted |>
 cor_conscientiousness <- cor(data_bfi_sc_conscientiousness)
 
 
-# Neuroticism hat 8 items
+# Neuroticism has 8 items
 # neuroticism <- c("bfi_n1", "bfi_n2", "bfi_n3", "bfi_n4", "bfi_n5", "bfi_n6", "bfi_n7", "bfi_n8")
 
 data_bfi_sc_neuroticism <- data_raw_bfi_adjusted |>
@@ -199,7 +208,7 @@ data_bfi_sc_neuroticism <- data_raw_bfi_adjusted |>
 cor_neuroticism <- cor(data_bfi_sc_neuroticism)
 
 
-# Openness hat 9 items
+# Openness has 10 items
 # openness <- c("bfi_o1", "bfi_o2", "bfi_o3", "bfi_o4", "bfi_o5", "bfi_o6", "bfi_o7", "bfi_o8", "bfi_o9", "bfi_o10")
 
 data_bfi_sc_openness <- data_raw_bfi_adjusted |>
@@ -210,7 +219,7 @@ data_bfi_sc_openness <- data_raw_bfi_adjusted |>
 cor_openness <- cor(data_bfi_sc_openness)
 
 
-# Extroversion hat 8 items
+# Extroversion has 8 items
 # extroversion <- c("bfi_e1", "bfi_e2", "bfi_e3", "bfi_e4", "bfi_e5", "bfi_e6", "bfi_e7", "bfi_e8")
 
 data_bfi_sc_extroversion <- data_raw_bfi_adjusted |>
@@ -227,24 +236,20 @@ cor_extroversion <- cor(data_bfi_sc_extroversion)
 
 ## Data quality
 - Check that the item level data does not violate the logical minimum and maximum scores (1 to 6). Create an exclusion variable and set participants with impossible data to "exclude".
-
-
 - Check that all participants have complete data on the BFI scales they completed. Create an exclusion variable and set participants with incomplete data to "exclude".
 
+I made two data sets and divided the participants into the groups: A & O <- participants who only completed these two scales, and N, E and C <- participants who only completed these three scales. I put the two or three scales together because the participants should have filled in either two or three completely.
+
+First I divide the data sets by ID and the desired scales, if the participants have on the *whole* (all items in this scale) scales just NAs, I will remove them from this data set and then include them in the other data set. 
+
+Then I excluded all those who gave impossible answers and whether they had solved all the items, if any were missing, they were also excluded.
 ```{r}
 
-#habe zwei Datasätze gemacht und die Teilnerhmer aufgteilt in den Gruppen: A & o <- Teilnehmer die nur diese zwei Skalen ausgefüllt haben 
-# N und E und C <- Teilnehmer, die nur diese drei Skalen ausgefüllt haben
-
-#ich kann sie so gruppieren bezöglich der exclude_impossible <- weil in der Masterexklusion müsste ich die dann sowieso excluden
-#zuerst unterteile ich den Datensatz nach ID und den gewünschten Items, falls die Teilnehmer gar keine Items aus der gewünschten Skalen gelöst haben, werde ich diese aus diesem Datensatz entfernen und sie dann im anderen Datensatz berücksichtigen
-
-
-#für Agree und Openess -> 2 scales
+#for Agreeableness and Openess -> 2 scales
 
 data_bfi_A_O <- data_raw_bfi_adjusted |>
   select(ID, starts_with(c("bfi_a", "bfi_o"))) |>
-  rowwise() |>
+  rowwise() |> #without rowwise, this will not work!
   filter(!if_all(-ID, is.na)) |>
   mutate(exclude_impossible = if_else(all(c_across(starts_with(c("bfi_a", "bfi_o"))) %in% 1:6),
                                       "include", "exclude")) |>
@@ -252,10 +257,8 @@ data_bfi_A_O <- data_raw_bfi_adjusted |>
                                          "exclude", "include"))
 
 
-#ich haben die zweier oder dreier Skalen zusammengenommen, weil die Teilnehmer entweder zwei oder drei ganz ausgefüllt haben sollten 
 
-
-#für Extra Neure und Verträglich -> 3 scales
+#for Extraversion, Neuroticism and Conscientiousness -> 3 scales
 
 data_bfi_N_E_C <- data_raw_bfi_adjusted |>
   select(ID, starts_with(c("bfi_c", "bfi_e", "bfi_n"))) |>
@@ -266,20 +269,24 @@ data_bfi_N_E_C <- data_raw_bfi_adjusted |>
   mutate(exclude_not_completed = if_else(any(is.na(c_across(starts_with(c("bfi_c", "bfi_e", "bfi_n"))))),
                                          "exclude", "include"))
 
-#die beiden Datasätze nun wiedergemeinsam kombinieren
+#now combine the two data sets to one again
+#I have adjusted the order of the columns
 data_bfi_all_5 <- full_join(data_bfi_A_O, data_bfi_N_E_C,
                             by = join_by(ID, exclude_impossible, exclude_not_completed)) |>
   select(-exclude_impossible,-exclude_not_completed,
          exclude_impossible, exclude_not_completed)
-#damit die exclude variablen die letzten spalten sind
+
+
 
 ```
 
 ### Data check
-```{r}
-#Abgleich, ob alle IDs berücksichtigt worden sind und jeder ID entweder in NEC or AO ist
 
-#179 Observationen wie im nicht merged Satz - heisst komplett
+I check whether all IDs have been taken into account and each ID is either in "N,E,C" or "A,O" Dataset.
+
+179 Observations as in the non-merged set - means complete.
+```{r}
+
 
 merged_data <- full_join(data_bfi_A_O, data_bfi_N_E_C, by = "ID")|>
   select("ID")|>
@@ -289,11 +296,12 @@ notmerged_data <- data_raw_bfi_adjusted|>
   select("ID")|>
   arrange("ID")
 
+
+#no different data found!
 differences_data1 <- setdiff(notmerged_data, merged_data)
 differences_data2 <- setdiff(merged_data, notmerged_data)
-#keine unterschiedlichen Daten gefunden!
 
-#keine Dupilcate!
+#no duplicates!
 maybe_duplicates <- duplicated(merged_data)
 
 
@@ -303,13 +311,13 @@ maybe_duplicates <- duplicated(merged_data)
 ## Mean score
 - Mean-score the subscales of the BFI scale. Each participant only got either 2 or 3 subscales. 
 
-
+ms_ for MeanScore
 ```{r}
 
-#eleganter wäre es gewesen mit "starts_with" aber das hat leider nicht geklappt
+#It would have been more elegant with "starts_with" but unfortunately that didn't work out
 
-#openness <- c(bfi_o1, bfi_o2, bfi_o3, bfi_o4, bfi_o5, bfi_o6, bfi_o7, bfi_o8, bfi_o9)
-#agreeableness <- c(bfi_a1, bfi_a2, bfi_a3, bfi_a4, bfi_a5, bfi_a6, bfi_a7, bfi_a8, bfi_a9, bfi_o10)
+#openness <- c(bfi_o1, bfi_o2, bfi_o3, bfi_o4, bfi_o5, bfi_o6, bfi_o7, bfi_o8, bfi_o9, bfi_o10)
+#agreeableness <- c(bfi_a1, bfi_a2, bfi_a3, bfi_a4, bfi_a5, bfi_a6, bfi_a7, bfi_a8, bfi_a9)
 
 data_bfi_ms_A_O <- data_bfi_A_O |>
   group_by(ID) |>
@@ -326,7 +334,7 @@ data_bfi_ms_N_E_C <- data_bfi_N_E_C |>
             mean_neuroticism = mean(c(bfi_n1, bfi_n2, bfi_n3, bfi_n4, bfi_n5, bfi_n6, bfi_n7, bfi_n8)),
             mean_conscientiousness = mean(c(bfi_c1, bfi_c2, bfi_c3, bfi_c4, bfi_c5, bfi_c6, bfi_c7, bfi_c8, bfi_c9)))
 
-
+#joined them together
 data_bfi_meanscores <- full_join(data_bfi_ms_A_O, data_bfi_ms_N_E_C, by= "ID")
 
 ```
@@ -334,11 +342,12 @@ data_bfi_meanscores <- full_join(data_bfi_ms_A_O, data_bfi_ms_N_E_C, by= "ID")
 
 ### Meanscore Check
  - Check that the mean scores do not violate the min and max possible score (i.e., first determine this min and max score), and revise your scoring code if it does. 
-```{r}
-#mindest MeanScore kann nur 1 sein und max score kann nur 6 sein, weil der Durchschnitt höher oder kleiner sein kann als Werte aus dem es gebildet worden ist
-#die NAs werden ignoriert, weil sie im weiteren Verlauf gehandeld werden 
 
-  
+The min score can only be 1 and max score can only be 6, because the average cannot be higher or lower than the values from which it was formed. 
+```{r}
+#the NAs are ignored because they are handled in the further 
+#I have nested two if_else with each other
+
 check_data_bfi_meanscores <- data_bfi_meanscores |>
   mutate(bounded_correctly_a = if_else(is.na(mean_agreeableness), "ignore", 
                                          if_else(between(mean_agreeableness, left = 1, right = 6), "yes", "no")),
@@ -352,8 +361,7 @@ check_data_bfi_meanscores <- data_bfi_meanscores |>
                                          if_else(between(mean_conscientiousness, left = 1, right = 6), "yes", "no")))
 
 
-
-
+#no need to revise the code, because there are no "no" s and the observations remain at 179 
 bounded_correctly_a <- count(check_data_bfi_meanscores, bounded_correctly_a)
 bounded_correctly_O <- count(check_data_bfi_meanscores, bounded_correctly_O)
 bounded_correctly_n <- count(check_data_bfi_meanscores, bounded_correctly_n)
@@ -361,7 +369,6 @@ bounded_correctly_e <- count(check_data_bfi_meanscores, bounded_correctly_e)
 bounded_correctly_c <- count(check_data_bfi_meanscores, bounded_correctly_c)
 
 
-#no need to revise the code, weil es keine "no" s gibt und die Observationen bleiben auf 179 
 
 ```
 
@@ -369,20 +376,15 @@ bounded_correctly_c <- count(check_data_bfi_meanscores, bounded_correctly_c)
 # IAT Scale
 
 ## D Score
-- Score the trial-level IAT data using the Greenwald "D" score: 
-Calculate a mean RT ("mean1") for blocks 3 and 6 (one score using trials from both blocks), 
-a mean RT ("mean2") for blocks 4 and 7 (one score using trials from both blocks), 
-and the SD of RTs in blocks 3, 4, 6 and 7 ("SD"). To calculate D: D = (mean2 - mean1)/SD. 
-
-Blocks 1, 2, and 5 are practice blocks and must be discarded. 
+- Score the trial-level IAT data using the Greenwald "D" score: Calculate a mean RT ("mean1") for blocks 3 and 6 (one score using trials from both blocks), a mean RT ("mean2") for blocks 4 and 7 (one score using trials from both blocks), and the SD of RTs in blocks 3, 4, 6 and 7 ("SD"). To calculate D: D = (mean2 - mean1)/SD. Blocks 1, 2, and 5 are practice blocks and must be discarded. 
 ```{r}
+
+#removing the practice blocks has worked
 data_raw_iat_check <- data_raw_iat |>
   filter(block_number %in% c("3", "4", "6", "7"))|>
   count(block_number)
 
-#das entfernen von den practice blocks hat geklappt
-
-
+#have broken D = (mean2 - mean1)/SD the formula down to several lines
 data_raw_iat_D <- data_raw_iat |>
   filter(block_number %in% c("3", "4", "6", "7"))|>
   mutate(reaction_time = as.numeric(reaction_time))|>
@@ -393,29 +395,28 @@ data_raw_iat_D <- data_raw_iat |>
                      reaction_time[block_number %in% c("4", "7")])),
             D = (mean2 - mean1) / SD)  |>
   ungroup()
-#179 Observationen, stimmt mit den Observationen von BFI überein! 
+
+#179 Observations, agrees with the observations of BFI! 
 
 
 ```
 
 ### Sanity Check
 - Include a sanity check: check that all D scores are in the range -2 to +2. If not, revise your implementation of the scoring code. 
-
 ```{r}
+
 #no need to revise the code
-         
 out_of_range_d <- data_raw_iat_D |>
   filter(D < -2 | D > 2)
 
 ```
 
 ## Exclusions
-  - Create an exclusion variable and set participants with incomplete trial level IAT data to "exclude". Specifically, IAT should have 120 trials on the critical test blocks (i.e., blocks 3, 4, 6 and 7). Trials on the other (practice) blocks can be discarded.
-    - Create an exclusion variable for IAT performance: 
-  set participants with >10% of the participants trials are < 300ms, 
-  or if their accuracy is < than 75%. Only use trials from the critical test blocks when computing these (i.e., blocks 3, 4, 6 and 7).
-  
+- Create an exclusion variable and set participants with incomplete trial level IAT data to "exclude". Specifically, IAT should have 120 trials on the critical test blocks (i.e., blocks 3, 4, 6 and 7). Trials on the other (practice) blocks can be discarded.
+- Create an exclusion variable for IAT performance: set participants with >10% of the participants trials are < 300ms, or if their accuracy is < than 75%. Only use trials from the critical test blocks when computing these (i.e., blocks 3, 4, 6 and 7).
 ```{r}
+
+# here I excluded the participants with incomplete IAT trials
 data_iat_incomplete <- data_raw_iat |>
   filter(block_number %in% c("3", "4", "6", "7"))|>
   group_by(ID) |>
@@ -424,24 +425,23 @@ data_iat_incomplete <- data_raw_iat |>
   ungroup()
 
 
-
-
-
+# here I created exclusion variables for IAT performance
 data_iat_trials_exclusions <- data_raw_iat |>
   filter(block_number %in% c("3", "4", "6", "7"))|>
   mutate(reaction_time = as.numeric(reaction_time), 
-         less_300 = if_else(reaction_time < 300, TRUE, FALSE),
-         accuracy = if_else(trial_accuracy == "correct", TRUE, FALSE)) |> 
+         less_300 = if_else(reaction_time < 300, TRUE, FALSE), # is like counting who was faster than 300 ms
+         accuracy = if_else(trial_accuracy == "correct", TRUE, FALSE)) |> #same thing for accurar answers
   group_by(ID) |>
-  summarize(fast_rt = mean(less_300),
+  summarize(fast_rt = mean(less_300), #the mean of how often to fast
             average_accuracy = mean(accuracy))|>
-  mutate(exclude_fast = if_else(fast_rt > 0.10, "exclude", "include"),
+  mutate(exclude_fast = if_else(fast_rt > 0.10, "exclude", "include"), #if more than 10% of the trials are to fast -> excluded
          exclude_accuracy = if_else(average_accuracy < 0.75, "exclude", "include"))|>
   ungroup()
 
 
-##zuerst getrennt gemacht, um eine bessere Übersicht zu haben
-#die zwei Codeblöcke zusammengeführt, um es kompakter zu halten
+
+#I did the codes at first separated to have a better overview
+#and than merged the two code blocks to keep it more compact
 
 # exclusion_less_300 <- data_raw_iat |>
 #   filter(!block_number %in% c("1", "2", "5"))|>
@@ -461,18 +461,14 @@ data_iat_trials_exclusions <- data_raw_iat |>
 
 
 
-
-
 ```
 
 # Combine BFI & IAT
 - Combine the demographics, BFI, and IAT data into one data frame. This data frame should be one-row-one-participant. Both the mean scored and item level BFI data should be present in the dataset.
 ```{r}
 
-
-
 #ID was not as nummeric and couldnt be join at first 
-#prepare to join
+#prepared the dataset to join
 data_processed_iat <- data_raw_iat_D|>
   full_join(data_iat_incomplete, by = "ID")|>
   full_join(data_iat_trials_exclusions, by = "ID")|>
@@ -483,7 +479,8 @@ data_processed_bfi <- data_bfi_all_5|>
 
 
 # ultimative join 
-#zusätzlich habe ich den Leuten ohne Age oder Gender Daten als missing vermerkt, es ist kein grund sie auszuschliessen
+#I have marked the people (they were not included in the dataset demographics) 
+#without age or gender data as missing, it is no reason to exclude them
 
 data_processed_before_exklusions <- data_age_gender|>
   full_join(data_processed_iat, by = "ID")|>
@@ -495,10 +492,10 @@ data_processed_before_exklusions <- data_age_gender|>
          age = case_when(str_detect(age, "^[0-9]+$") ~ age,
                          TRUE ~ "missing"))
 
-#now many more observations
+#now we have many more observations
     
 
-#no duplicates
+#I chekked for duplicates --> no duplicates
 
 # data_processed_duplicates <- data_processed_before_exklusions|>
 #   count(ID) |>
@@ -511,15 +508,15 @@ data_processed_before_exklusions <- data_age_gender|>
 
 # Master exclusions
 - Create a master exclude variable from the individual exclude variables. 
-Ich werde eine weitere Variable kreaieren, die die Teilnehmer ohne ScaleDaten ebenfalls herausnimmt, weil die aus dem Datasatz Demographics kommen und fehlende Scale Daten die Leute nicht nützlich sind und als fehlende Dtaen gelten
+
+I will create another variable that also removes the participants without scale data, because they come from the Demographics dataset and missing scale data is not useful --> dropping
 ```{r}
 
-#exluded die Teilnehmer aus der Demographics, die keine Itemwerte haben 
+#excluded the participants from the demographics who have no item values 
+#witrh thisd codeline in the code:
 #if_all(-c(ID, age, gender), is.na) ~ "exclude", 
 
 
-
-#die andere Version
 data_processed <- data_processed_before_exklusions|>
   mutate(exclude_participant = case_when(if_all(-c(ID, age, gender), is.na) ~ "exclude", 
                                          exclude_impossible == "exclude" ~ "exclude",
@@ -530,14 +527,15 @@ data_processed <- data_processed_before_exklusions|>
                                          TRUE ~ "include"))
 
 
-# teilnehmer ohne Alter und Geschlecht werden berücksichtigt
+#  Participants without age and gender are taken into account --> Check
 count(data_processed, age, exclude_participant)
-#count(data_processed, gender, exclude_participant)
+count(data_processed, gender, exclude_participant)
 
 
 
 
-# ID: 417047 <- ist einer von denen, wo nur Alter und Gender vorhanden ist, sonst keine weiteren Werte
+#ID: 417047 - is one of those where only age and gender are present, otherwise no other values
+# if excluded --> Check
 # data_processed|>
 #   filter(ID == 417047)|>
 #   print()
@@ -552,19 +550,13 @@ count(data_processed, age, exclude_participant)
 dir.create("../data/processed/", recursive = TRUE)
 
 
-#write_csv(data_processed, "../data/processed/data_processed.csv")
-
 write_csv(data_processed, "../data/processed/data_processed.csv")
-
-
 
 
 ```
 
 # Codebook 
-
 - Create a codebook for the processed data file that explains what each variable represents.
-
 ```{r}
 
 data_processed <- read_csv("../data/processed/data_processed.csv")
