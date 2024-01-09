@@ -201,13 +201,14 @@ alpha_conscientiousness <- data_processed_after_exclusions |>
 
 I chose the color green because *Green*wald's D. ;D
 
-I chose theme_minimal because the grid is in the background and I find it helpful. The X axis limit was set to -2, 2 because the range of Greenwald's D is more interpretable in my opinion.
+I chose theme_minimal because the grid is in the background and I find it helpful. The X axis limit this way because the data ranged from -1 - 0.5 and so you can see cleary it's asymmetric (+ Zero Line).
 
 ```{r}
 
 
 
 ggplot(data_processed_after_exclusions, aes(x = D)) +
+  geom_vline(xintercept = 0, linetype = "solid", color = "black", size = 0.1) +
   geom_histogram(binwidth = 0.1,
                  boundary = 1,
                  color = "#000000",
@@ -216,7 +217,7 @@ ggplot(data_processed_after_exclusions, aes(x = D)) +
   labs(x = "D Score",
        y = "Frequency",
        title = "Distribution of D Score") +
-  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(-2, 2)) +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(-1.1, 0.7)) +
   scale_y_continuous(breaks = pretty_breaks(n = 4), limits = c(0, 23)) +
   theme_minimal() +
   theme(title = element_text(face = "bold"),
@@ -564,7 +565,9 @@ In publications it's not common to bold titles (at least APA says that) like tha
 
 The limits are set a little wider so that the points can be displayed well and are not possibly cut off.
 
-I chose six breaks for the y-axis so that you can differentiate better and the boundarys up to -2 to 2, because that is the min and max of the D score, because with -1 and 1 you could get the impression that the variation is greater than it actually is.
+For the X axis, I chose values from 1 to 6 because these are the boundaries and we represented the data from 1 to 6. I chose the values -1 to 0.75 for the Y axis because a larger bandwidth would result in too much white space and it would not be necessary because all data can be successfully mapped in this way. In addition, I added a zero line for the Y axis to emphasize the asymmetric distribution of the data.
+
+I have used the same dimensions for all scatterplots so that they remain comparable in the combined plot.
 
 ### Agreeableness
 ```{r}
@@ -576,8 +579,8 @@ mean_agree$extreme <- ifelse(mean_agree$D >= quantile(mean_agree$D, 0.9) |
                                mean_agree$D <= quantile(mean_agree$D, 0.1),
                      "extreme", "not extreme")
 
-
 plot_agree <- ggplot(mean_agree, aes(x = mean_agreeableness, y = D)) +
+  geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05) +
   geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
   geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
@@ -591,7 +594,7 @@ plot_agree <- ggplot(mean_agree, aes(x = mean_agreeableness, y = D)) +
        y = "D Score",
        title = "Scatter Plot of Agreeableness Predicting the D score") +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 5),  limits = c(-1, 0.75)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
   theme_classic() +
@@ -611,6 +614,7 @@ mean_open$extreme <- ifelse(mean_open$D >= quantile(mean_open$D, 0.9) |
                      "extreme", "not extreme")
 
 plot_open <- ggplot(mean_open, aes(x = mean_openness, y = D)) +
+  geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05) +
   geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
   geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
@@ -624,7 +628,7 @@ plot_open <- ggplot(mean_open, aes(x = mean_openness, y = D)) +
        y = "D Score",
        title = "Scatter Plot of Openness Predicting the D score") +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-1, 0.75)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
   theme_classic() +
@@ -645,6 +649,7 @@ mean_extro$extreme <- ifelse(mean_extro$D >= quantile(mean_extro$D, 0.9) |
                      "extreme", "not extreme")
 
 plot_extro <- ggplot(mean_extro, aes(x = mean_extroversion, y = D)) +
+  geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05) +
   geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
   geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
@@ -658,7 +663,7 @@ plot_extro <- ggplot(mean_extro, aes(x = mean_extroversion, y = D)) +
        y = "D Score",
        title = "Scatter Plot of Extroversion Predicting the D score") +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-1, 0.75)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
   theme_classic() +
@@ -679,6 +684,7 @@ mean_neuro$extreme <- ifelse(mean_neuro$D >= quantile(mean_neuro$D, 0.9) |
                      "extreme", "not extreme")
 
 plot_neuro <- ggplot(mean_neuro, aes(x = mean_neuroticism, y = D)) +
+  geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05) +
   geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
   geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
@@ -692,7 +698,7 @@ plot_neuro <- ggplot(mean_neuro, aes(x = mean_neuroticism, y = D)) +
        y = "D Score",
        title = "Scatter Plot of Neuroticism Predicting the D score") +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-1, 0.75)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
   theme_classic() +
@@ -713,6 +719,7 @@ mean_cons$extreme <- ifelse(mean_cons$D >= quantile(mean_cons$D, 0.9) |
                      "extreme", "not extreme")
 
 plot_cons <- ggplot(mean_cons, aes(x = mean_conscientiousness, y = D)) +
+  geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05)+
   geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
   geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
@@ -726,7 +733,7 @@ plot_cons <- ggplot(mean_cons, aes(x = mean_conscientiousness, y = D)) +
        y = "D Score",
        title = "Scatter Plot of Conscientiousness Predicting the D score") +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-2, 2)) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-1, 0.75)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
   theme_classic() +
@@ -735,7 +742,7 @@ plot_cons <- ggplot(mean_cons, aes(x = mean_conscientiousness, y = D)) +
         axis.text = element_text(size = 10)) 
 
 print(plot_cons)
-
+?linetype
 ```
 
 
@@ -790,6 +797,7 @@ plot_comb_bfi <- plot_temp + plot_layout(guides = 'collect', design = layout) &
 
 #its not pretty, but if you open the png or pdf, it's in a much butter resolution
 #the one warning can be ignored, it refers to the plot_guide, this was on purpose
+#it's funny how the zero line looks different in html, rmd and in png 
 print(plot_comb_bfi)
 
 
@@ -802,9 +810,9 @@ I have adjusted the size so that the plots are better displayed.
 ```{r}
 
 
-ggsave("../communications/plot_comb_bfi.png", plot = plot_comb_bfi,  width = 18, height = 12, dpi = 300, device = "png")
+ggsave("../communications/plot_comb_bfi.png", plot = plot_comb_bfi,  width = 16, height = 10, dpi = 300, device = "png")
 
-ggsave("../communications/plot_comb_bfi.pdf", plot = plot_comb_bfi,width = 18, height = 12, device = "pdf")
+ggsave("../communications/plot_comb_bfi.pdf", plot = plot_comb_bfi,width = 16, height = 10, device = "pdf")
 
 
 ```

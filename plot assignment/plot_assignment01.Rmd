@@ -78,8 +78,21 @@ ValoTracker -> best Role (WinRate - K/D)
 
 library(readxl)
 #Getting the Data - chosed the combined Sheet 
-Sova_Mains <- read_excel("Sova Mains.xlsx", 
-    sheet = "combined")
+Sova_Main1 <- read_excel("Sova Mains.xlsx", 
+    sheet = 1)
+Sova_Main2 <- read_excel("Sova Mains.xlsx", 
+    sheet = 2)|>
+  select(-"K/D")
+
+
+
+#ich werde den COmbat Score verwenden und die Assists 
+#Win oder Lose wird hier eine zweitrangige Rolle spielen, weil es ein TeamSpiel ist und dies nicht primär von einem selbst abhängt
+
+#Scatterplot 
+# Bubbles Grösse der Assists
+
+ggplot2()
 
 
 

@@ -503,6 +503,15 @@ Um Rows/Colums umzugestalten
 
 ```
 
+
+## quantil
+
+``` {r}
+#berechnet zuum beispiel die oberen 10% oder die unteren 10% 
+
+
+```
+
 # GGplots
 https://r-graph-gallery.com/38-rcolorbrewers-palettes.html
 how to make animations and co
