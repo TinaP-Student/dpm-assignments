@@ -1,7 +1,7 @@
 ---
 title: "Evaluations of positive and negative stimuli using the Affective Misattribution Procedure (AMP) and self-reports"
 subtitle: "Data processing"
-author: "Template: Ian Hussey; content: [Student name]"
+author: "Template: Ian Hussey; content: Tina Puskaric"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
@@ -22,12 +22,29 @@ knitr::opts_chunk$set(message = FALSE,
 # Dependencies
 
 ```{r}
-
 library(tidyverse)
 library(janitor) # for clean_names()
 library(stringr)
+library(openxlsx)
 
 ```
+
+# Note
+
+commentary
+
+*This process file is special because we did a lot of things together at the beginning.*
+We worked on it on a weekly basis and then adopted your code in order to be on the same level.
+AT week 7 we made something like a resett? That's why this file is a bit special I think.
+```{r}
+
+# commentary
+
+c("code")
+
+
+```
+
 
 # Get data
 
@@ -51,7 +68,7 @@ data_amp_raw <- read_csv("../data/raw/data_amp_raw.csv") |>
 ```
 
 # Demographics
-
+extract Gender and Age -> wide format
 ```{r}
 
 dat_age_gender <- data_demographics_raw |>
@@ -74,7 +91,8 @@ dat_age_gender <- data_demographics_raw |>
 # Exclusions / data quality
 
 ## AMP
-
+Here we exclude the trials where the subjects were *too fast*. 
+In addition, we exclude people who do not have the correct number of trials (correct = 72).
 ```{r}
 
 data_amp_performance_criteria <- data_amp_raw |> 
@@ -85,7 +103,8 @@ data_amp_performance_criteria <- data_amp_raw |>
   summarize(proportion_fast_trials_amp = mean(latency_prob)) |>
   mutate(exclude_amp_performance = ifelse(proportion_fast_trials_amp > 0.10, "exclude", "include"))
 
-# determine modal number of trials
+
+
 data_amp_completeness <- data_amp_raw |>
   filter(blockcode != "practice",
          trialcode != "instructions") |>
@@ -95,13 +114,15 @@ data_amp_completeness <- data_amp_raw |>
   mutate(exclude_amp_completeness = ifelse(n == 72, "include", "exclude")) |>
   select(-n)
 
+
+#see that there is a VP that only made 8 or 144 trilas, these are excluded
+#the code only works if you remove this line in the previous Code! "|> select(-n)"
+
 # data_amp_completeness |>
 #   count(n)
 
 ```
 
-- One participant with 8 trials appears to be a partial completion (check raw data?)
-- One participant with 144 trials appears to be a repeat participant. I've chosen to exclude them entirely, but you could also have a more elaborate strategy where you retain only their first completion.
 
 # Self-reports
 
@@ -132,8 +153,6 @@ data_selfreport_scored <-
 
 # Affect Misattribution Procedure
 
-TODO extract evaluations on the AMP test blocks and convert to an overall bias score
-
 ```{r}
 
 data_amp_score_congruence <- data_amp_raw |> 
@@ -144,6 +163,11 @@ data_amp_score_congruence <- data_amp_raw |>
                                trialcode == "prime_negative" ~ 0,
                                TRUE ~ NA),
          prime_congruence = ifelse(trialcode == evaluative_response, 1, 0)) 
+
+```
+
+## Sanity Checks
+```{r}
 
 # sanity check 1: if you consider all the combiantions of factor levels of trialcode, evaluative_response, and prime congruence, there should be only 4:
 data_amp_score_congruence |>
@@ -182,31 +206,27 @@ data_processed_temp <- dat_age_gender |>
   full_join(data_amp_performance_criteria, by = "subject") |>
   full_join(data_amp_completeness, by = "subject")
 
-# flag all subjects with more than one row in the wide-format data. these should be excluded in the analysis.
-# a more elaborate approach would be to track down the individual dupicate cases and determine which of the mulitiple cases should be retained. 
+
+
 data_processed_duplicates <- data_processed_temp |>
   count(subject) |>
   mutate(exclude_duplicate_data = if_else(n > 1, "exclude", "include")) |>
   select(-n)
 
-# join in the duplicates df
+
 data_processed_before_exclusions <- data_processed_temp |>
   full_join(data_processed_duplicates, by = "subject")
 
 ```
 
 # Define master exclusions
-
+Excluding participants with missing demographics or outcomes measures data. 
 ```{r}
 
-# create a master exclude_participant variable
 data_processed <- data_processed_before_exclusions |>
   mutate(exclude_participant = case_when(tolower(age) == "test" ~ "exclude",
                                          tolower(gender) == "test" ~ "exclude",
                                          is.na(mean_evaluation) ~ "exclude",
-                                         # in this case we will exclude participants with missing demographics data or outcomes measures data. 
-                                         # Note that "list-wise exclusions" like this aren't always justified, as missingness often isn't at random. 
-                                         # How to treat missing data is a  whole area of work in itself, which we wont cover here.
                                          is.na(age) ~ "exclude", 
                                          is.na(gender) ~ "exclude",
                                          exclude_amp_performance == "exclude" ~ "exclude",
@@ -230,9 +250,6 @@ write_csv(data_processed, "../data/processed/data_processed.csv")
 
 # Create codebook template for the processed data
 
-If it has not already been created, this code write the codebook template to disk. 
-
-\TODO The template should then be filled in manually with descriptions of each variable so that someone else could understand what these variables represent. 
 
 ```{r}
 
@@ -244,6 +261,7 @@ library(openxlsx)
 #Codebooks: den Menschen das geben, damit sie verstehen welche Variable was ist und wie sie dokumentiert wurde
 
 
+#this is a function if it already exist, than it will not create it
 if(!file.exists("../data/processed/data_processed_codebook.xlsx")){
   # convert the column names to a df
   codebook_template <- data.frame(variable = colnames(data_processed)) |>

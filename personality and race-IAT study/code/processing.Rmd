@@ -25,7 +25,7 @@ knitr::opts_chunk$set(message = FALSE,
 commentary
 ```{r}
 
-#commentary
+# commentary
 
 c("code")
 
@@ -148,7 +148,6 @@ data_raw_bfi_adjusted <- data_raw_bfi |>
     . == 3 ~ 4,
     . == 2 ~ 5,
     . == 1 ~ 6)))
-
 
 ```
 
