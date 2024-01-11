@@ -99,6 +99,15 @@ data_processed_after_exclusions |>
 ```{r}
 
 data_processed_after_exclusions |>
+  rename(Age = age) |>
+  mutate(Age = ifelse(Age %in% c("missing"), "Missing", "Available")) |>
+  group_by(Age) %>%
+  summarise(n = n()) %>%
+  mutate(Percent = paste0(round_half_up((n / sum(n)) * 100, 1), "%")) |>
+  kable() |>
+  kable_classic(full_width = FALSE)
+
+data_processed_after_exclusions |>
   filter(age != "missing")|>
   mutate(age = as.numeric(age)) |>
   summarise(Mean = mean(age, na.rm = TRUE),
@@ -127,6 +136,16 @@ data_processed_after_exclusions |>
 
 ### Gender
 ```{r}
+
+data_processed_after_exclusions |>
+  rename(Gender = gender) |>
+  mutate(Gender = ifelse(Gender %in% c("missing"), "Missing", "Available")) |>
+  group_by(Gender) %>%
+  summarise(n = n()) %>%
+  mutate(Percent = paste0(round_half_up((n / sum(n)) * 100, 1), "%")) |>
+  mutate(Gender = stringr::str_to_sentence(Gender))|>
+  kable() |>
+  kable_classic(full_width = FALSE)
 
 data_processed_after_exclusions |> 
   filter(gender != "missing")|>
@@ -162,33 +181,53 @@ data_processed_after_exclusions |>
 - Calculate Cronbach's alpha for each of the BFI subscales.
 
 subset or select - it comes to the same thing, I decided on select because with subset the starts_with didn't really wanted to work and I would rather work with starts_with because it is less error-prone than writing out the individual items.
+
+I only output the one table where the raw alpha can be seen, otherwise there will be a lot of code in the HTML.
 ```{r}
 
+#raw_alpha for Agreeableness: 0.78
 alpha_agreeableness <- data_processed_after_exclusions |>
   select(starts_with("bfi_a")) |>
   na.omit() |>
   alpha()
 
+print(alpha_agreeableness$total)
 
+
+#raw_alpha for Openness: 0.81
 alpha_openness <- data_processed_after_exclusions |>
   select(starts_with("bfi_o")) |>
   na.omit() |>
   alpha()
-          
+
+print(alpha_openness$total)
+
+
+#raw_alpha for Extroversion: 0.82
 alpha_extroversion <- data_processed_after_exclusions |>
   select(starts_with("bfi_e")) |>
   na.omit() |>
   alpha()
 
+print(alpha_extroversion$total)
+
+
+#raw_alpha for Neuroticism: 0.78
 alpha_neuroticism <- data_processed_after_exclusions |>
   select(starts_with("bfi_n")) |>
   na.omit() |>
   alpha()
 
+print(alpha_neuroticism$total)
+
+
+#raw_alpha for Conscientiousness: 0.81
 alpha_conscientiousness <- data_processed_after_exclusions |>
   select(starts_with("bfi_c")) |>
   na.omit() |>
   alpha()
+
+print(alpha_conscientiousness$total)
 
 
 ```
@@ -203,8 +242,9 @@ I chose the color green because *Green*wald's D. ;D
 
 I chose theme_minimal because the grid is in the background and I find it helpful. The X axis limit this way because the data ranged from -1 - 0.5 and so you can see cleary it's asymmetric (+ Zero Line).
 
-```{r}
+I made the D in D score in the axis crusive because it is an effect size.I will do the same for the other plots.
 
+```{r}
 
 
 ggplot(data_processed_after_exclusions, aes(x = D)) +
@@ -213,18 +253,17 @@ ggplot(data_processed_after_exclusions, aes(x = D)) +
                  boundary = 1,
                  color = "#000000",
                  fill = "#446644",
-                 alpha = 0.75) +
-  labs(x = "D Score",
+                 alpha = 0.9) +
+  labs(x = expression(paste(bolditalic("D"), bold(" Score"))),
        y = "Frequency",
        title = "Distribution of D Score") +
-  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(-1.1, 0.7)) +
+  scale_x_continuous(breaks = seq(-1, 0.7, by = 0.25), limits = c(-1.1, 0.7)) +
   scale_y_continuous(breaks = pretty_breaks(n = 4), limits = c(0, 23)) +
   theme_minimal() +
   theme(title = element_text(face = "bold"),
         axis.title = element_text(face = "bold"),
-        axis.text = element_text(size = 10))
-
-
+        axis.text = element_text(size = 10),
+        panel.grid.minor = element_blank())
 
 
 ```
@@ -253,7 +292,7 @@ ggplot(mean_agree, aes(x = mean_agreeableness)) +
                  boundary = 1,
                  color = "#000000",
                  fill = "#AF5FAF",
-                 alpha = 0.75) +
+                 alpha = 0.9) +
   labs(x = "Mean Agreeableness",
        y = "Frequency",
        title = "Distribution of Agreeableness") +
@@ -280,7 +319,7 @@ ggplot(mean_open, aes(x = mean_openness)) +
                  boundary = 1,
                  color = "#000000",
                  fill = "#FF7F00",
-                 alpha = 0.75) +
+                 alpha = 0.9) +
   labs(x = "Mean Openness",
        y = "Frequency",
        title = "Distribution of Openness") +
@@ -306,7 +345,7 @@ ggplot(mean_extro, aes(x = mean_extroversion)) +
                  boundary = 1,
                  color = "#000000",
                  fill = "#E41A1C",
-                 alpha = 0.75) +
+                 alpha = 0.9) +
   labs(x = "Mean Extroversion",
        y = "Frequency",
        title = "Distribution of Extroversion") +
@@ -334,7 +373,7 @@ ggplot(mean_neuro, aes(x = mean_neuroticism)) +
                  boundary = 1,
                  color = "#000000",
                  fill = "#87CEEB",
-                 alpha = 0.75) +
+                 alpha = 0.9) +
   labs(x = "Mean Neuroticism",
        y = "Frequency",
        title = "Distribution of Neuroticism") +
@@ -360,7 +399,7 @@ ggplot(mean_cons, aes(x = mean_conscientiousness)) +
                  boundary = 1,
                  color = "#000000",
                  fill = "#27d08b",
-                 alpha = 0.75) +
+                 alpha = 0.9) +
   labs(x = "Mean Conscientiousness",
        y = "Frequency",
        title = "Distribution of Conscientiousness") +
@@ -565,7 +604,9 @@ In publications it's not common to bold titles (at least APA says that) like tha
 
 The limits are set a little wider so that the points can be displayed well and are not possibly cut off.
 
-For the X axis, I chose values from 1 to 6 because these are the boundaries and we represented the data from 1 to 6. I chose the values -1 to 0.75 for the Y axis because a larger bandwidth would result in too much white space and it would not be necessary because all data can be successfully mapped in this way. In addition, I added a zero line for the Y axis to emphasize the asymmetric distribution of the data.
+For the X axis, I chose values from 1 to 6 because these are the boundaries and we represented the data from 1 to 6. I chose the values -1 to 0.5 for the Y axis because a larger bandwidth would result in too much white space and it would not be necessary because all data can be successfully mapped in this way. In addition, I added a zero line for the Y axis to emphasize the asymmetric distribution of the data.
+
+I didn't label all the ticks on the Y axis because I wanted to find a balance between the HTML output and PNGs. If I had left all the ticks labeled, it wouldn't have looked as nice in the document and HTML. As it is, the unlabeled ticks are still helpful and serve their purpose. 
 
 I have used the same dimensions for all scatterplots so that they remain comparable in the combined plot.
 
@@ -581,26 +622,27 @@ mean_agree$extreme <- ifelse(mean_agree$D >= quantile(mean_agree$D, 0.9) |
 
 plot_agree <- ggplot(mean_agree, aes(x = mean_agreeableness, y = D)) +
   geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05) +
-  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
-  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme), position = "jitter") +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
-                     name = "Extreme D Score",
+                     name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                      labels = c("Top or Bottom 10%", "Not Extreme")) +
   scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#fb75fb"),
-                    name = "Extreme D Score",
+                    name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                     labels = c("Top or Bottom 10%", "Not Extreme")) +
   geom_smooth(method = "lm", color = "#f915f9", se = TRUE) +
   labs(x = "Mean Agreeableness",
-       y = "D Score",
-       title = "Scatter Plot of Agreeableness Predicting the D score") +
+       y = expression(paste(bolditalic("D"), bold(" Score"))),
+       title = expression(paste(bold("Scatter Plot of Agreeableness Predicting the "),
+                                           bolditalic("D"), bold(" Score")))) +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 5),  limits = c(-1, 0.75)) +
+  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5),  limits = c(-1, 0.5),
+                     labels = c(-1, "", -0.5, "", 0, "", 0.5)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
-  theme_classic() +
+  theme_classic()+
   theme(title = element_text(face = "bold"),
         axis.title = element_text(face = "bold")) 
-  
+                     
 print(plot_agree)
 
 ```
@@ -615,20 +657,21 @@ mean_open$extreme <- ifelse(mean_open$D >= quantile(mean_open$D, 0.9) |
 
 plot_open <- ggplot(mean_open, aes(x = mean_openness, y = D)) +
   geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05) +
-  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
-  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme), position = "jitter") +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
-                     name = "Extreme D Score",
+                     name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                      labels = c("Top or Bottom 10%", "Not Extreme")) +
   scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#FFBF00"),
-                    name = "Extreme D Score",
+                    name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                     labels = c("Top or Bottom 10%", "Not Extreme")) +
   geom_smooth(method = "lm", color = "#FF5733", se = TRUE) +
   labs(x = "Mean Openness",
-       y = "D Score",
-       title = "Scatter Plot of Openness Predicting the D score") +
+       y = expression(paste(bolditalic("D"), bold(" Score"))),
+       title = expression(paste(bold("Scatter Plot of Openness Predicting the "),
+                                           bolditalic("D"), bold(" Score")))) +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-1, 0.75)) +
+  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5),  limits = c(-1, 0.5),
+                     labels = c(-1, "", -0.5, "", 0, "", 0.5)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
   theme_classic() +
@@ -650,20 +693,21 @@ mean_extro$extreme <- ifelse(mean_extro$D >= quantile(mean_extro$D, 0.9) |
 
 plot_extro <- ggplot(mean_extro, aes(x = mean_extroversion, y = D)) +
   geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05) +
-  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
-  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme), position = "jitter") +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
-                     name = "Extreme D Score",
+                     name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                      labels = c("Top or Bottom 10%", "Not Extreme")) +
   scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#ed5e5f"),
-                    name = "Extreme D Score",
+                    name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                     labels = c("Top or Bottom 10%", "Not Extreme")) +
   geom_smooth(method = "lm", color = "#f80609", se = TRUE) +
   labs(x = "Mean Extroversion",
-       y = "D Score",
-       title = "Scatter Plot of Extroversion Predicting the D score") +
+       y = expression(paste(bolditalic("D"), bold(" Score"))),
+       title = expression(paste(bold("Scatter Plot of Extroversion Predicting the "),
+                                           bolditalic("D"), bold(" Score")))) +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-1, 0.75)) +
+  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5),  limits = c(-1, 0.5),
+                     labels = c(-1, "", -0.5, "", 0, "", 0.5)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
   theme_classic() +
@@ -672,6 +716,8 @@ plot_extro <- ggplot(mean_extro, aes(x = mean_extroversion, y = D)) +
         axis.text = element_text(size = 10))
 
 print(plot_extro)
+
+
 
 ```
 
@@ -685,20 +731,21 @@ mean_neuro$extreme <- ifelse(mean_neuro$D >= quantile(mean_neuro$D, 0.9) |
 
 plot_neuro <- ggplot(mean_neuro, aes(x = mean_neuroticism, y = D)) +
   geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05) +
-  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
-  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme), position = "jitter") +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
-                     name = "Extreme D Score",
+                     name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                      labels = c("Top or Bottom 10%", "Not Extreme")) +
   scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#87CEEB"),
-                    name = "Extreme D Score",
+                    name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                     labels = c("Top or Bottom 10%", "Not Extreme")) +
   geom_smooth(method = "lm", color = "#1a1ce4", se = TRUE) +
   labs(x = "Mean Neuroticism",
-       y = "D Score",
-       title = "Scatter Plot of Neuroticism Predicting the D score") +
+       y = expression(paste(bolditalic("D"), bold(" Score"))),
+       title = expression(paste(bold("Scatter Plot of Neuroticism Predicting the "),
+                                           bolditalic("D"), bold(" Score")))) +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-1, 0.75)) +
+  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5),  limits = c(-1, 0.5),
+                     labels = c(-1, "", -0.5, "", 0, "", 0.5)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
   theme_classic() +
@@ -707,6 +754,8 @@ plot_neuro <- ggplot(mean_neuro, aes(x = mean_neuroticism, y = D)) +
         axis.text = element_text(size = 10)) 
 
 print(plot_neuro)
+
+
 
 ```
 
@@ -720,20 +769,21 @@ mean_cons$extreme <- ifelse(mean_cons$D >= quantile(mean_cons$D, 0.9) |
 
 plot_cons <- ggplot(mean_cons, aes(x = mean_conscientiousness, y = D)) +
   geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey", size = 0.05)+
-  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme)) +
-  geom_jitter(alpha = 0.2, aes(fill = extreme, shape = extreme)) +
+  geom_point(size = 1.5, alpha = 0.7, aes(fill = extreme, shape = extreme), position = "jitter") +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
-                     name = "Extreme D Score",
+                     name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                      labels = c("Top or Bottom 10%", "Not Extreme")) +
   scale_fill_manual(values = c("not extreme" = "#000000", "extreme" = "#27d08b"),
-                    name = "Extreme D Score",
+                    name = expression(paste(bold("Extreme "),bolditalic("D"), bold(" Score"))),
                     labels = c("Top or Bottom 10%", "Not Extreme")) +
   geom_smooth(method = "lm", color = "#00757b", se = TRUE) +
   labs(x = "Mean Conscientiousness",
-       y = "D Score",
-       title = "Scatter Plot of Conscientiousness Predicting the D score") +
+       y = expression(paste(bolditalic("D"), bold(" Score"))),
+       title = expression(paste(bold("Scatter Plot of Conscientiousness Predicting the "),
+                                           bolditalic("D"), bold(" Score")))) +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(1, 6.2)) +
-  scale_y_continuous(breaks = pretty_breaks(n = 6),  limits = c(-1, 0.75)) +
+  scale_y_continuous(breaks = c(-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5),  limits = c(-1, 0.5),
+                     labels = c(-1, "", -0.5, "", 0, "", 0.5)) +
   expand_limits(x = c(1, 6), y = c(-1, 1)) +
   coord_cartesian(expand = FALSE) +
   theme_classic() +
@@ -742,7 +792,8 @@ plot_cons <- ggplot(mean_cons, aes(x = mean_conscientiousness, y = D)) +
         axis.text = element_text(size = 10)) 
 
 print(plot_cons)
-?linetype
+
+
 ```
 
 
@@ -769,7 +820,7 @@ D#E
 plot_guide <- ggplot(mean_cons, aes(x = mean_conscientiousness, y = D)) +
   geom_point(size = 1.5, alpha = 0.7, aes(shape = extreme)) +
   scale_shape_manual(values = c("not extreme" = 16, "extreme" = 24),
-                     name = "Extreme D Score",
+                     name = expression(paste(bolditalic("D"), bold(" Score"))),
                      labels = c("Top or Bottom 10%", "Not Extreme"))
 
 #Place Z in the layout does not exist, 
@@ -785,17 +836,26 @@ plot_temp <- wrap_plots(A = plot_agree + labs(title = "Agreeableness") + theme(l
   theme_classic()
 
 
-plot_comb_bfi <- plot_temp + plot_layout(guides = 'collect', design = layout) &
+plot_comb_bfi <- plot_temp + 
+  plot_layout(guides = 'collect', design = layout) &
+  theme(axis.title = element_text(face = "plain"),
+        legend.title = element_text(face = "bold"))  &
+  plot_annotation(title =  "Scatter Plots with Regressions for BFI Subscales Predicting the D Score",
+                  theme = theme(plot.title = element_text(face = "bold"))) 
+
+plot_comb_bfi <- plot_temp + 
+  plot_layout(guides = 'collect', design = layout) +
   theme(axis.title = element_text(face = "plain"),
         legend.title = element_text(face = "bold"),
-        plot.title = element_text(face = "bold"))  &
-  plot_annotation(title = "Scatter Plots with Regressions for BFI Subscales Predicting the D Score",
-                  theme = theme(plot.title = element_text(size = 16, face = "bold"))) 
+        plot.title = element_text(face = "bold")) +
+  plot_annotation(title = expression(paste(bold("Scatter Plots with Regressions for BFI Subscales Predicting the "),
+                                           bolditalic("D"), bold(" Score"))),
+                  theme = theme(plot.title = element_text(face = "bold")))
 
 
 
 
-#its not pretty, but if you open the png or pdf, it's in a much butter resolution
+#its not pretty here as a pronmt(), but if you open the png or pdf, it's in a much butter resolution
 #the one warning can be ignored, it refers to the plot_guide, this was on purpose
 #it's funny how the zero line looks different in html, rmd and in png 
 print(plot_comb_bfi)

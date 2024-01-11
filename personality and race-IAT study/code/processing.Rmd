@@ -154,7 +154,7 @@ data_raw_bfi_adjusted <- data_raw_bfi |>
 ### Sanity Check
 - Include a sanity check that assesses whether these list of item reversals, and your implementation of them, is likely to be correct: For each subscale, create a correlation table among the items (after reversals) and check that all correlations are positive. 
  
-*The correlations are all positive, so the reverse seems to have worked.*
+*The correlations are all positive, so the reverse seems to have worked.* (except for one correlation between bfi_o7 and bfi_o2 openness)
 
 "sc_" stands for sanity check. 
 
