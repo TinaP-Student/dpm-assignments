@@ -1,0 +1,321 @@
+---
+title: "Plot assignment"
+author: "Template: Ian Hussey; content: Tina Puskaric"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+    highlight: haddock
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+```{r, include=FALSE}
+
+knitr::opts_chunk$set(message = FALSE,
+                      warning = FALSE)
+
+```
+
+# Dependencies
+
+```{r}
+
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(janitor)
+library(scales)
+library(readr)
+library(openxlsx)
+library("ggExtra")
+library("ggplot2")
+library("viridis") 
+library("ggsci")
+library(ggrepel)
+library(ggridges)
+library(patchwork)
+
+
+```
+
+# Set.Seed
+
+```{r}
+
+set.seed(23)
+
+```
+
+# Instructions
+
+The goal of this exercise is to produce both good and bad examples of plots *and to be explicit about what makes them good or bad*. 
+
+The data can be real or fabricated. The plots can convey realistic or silly messages - but they must convey them clearly. You can get real data from many sources. A good one is the open science framekwork (osf.io). You can also simply make up data, either by hand or using simulation functions (e.g., `rnorm`) or the many simulation packages. If simulating data, ensure that you (a) use set.seed() to make it reproudbile, and (b) save a copy of the final data that you're using to disk and then reload it in the script so that the plot is reproducible.
+
+The goal is neither to reproduce the types of plots that you most often see in journals (bar plots, etc.) nor to use a very fancy looking plot just for the sake of it - if it is very unlikely that you'd ever be able to use the plot to convey a research finding in an article, blog, poster, tweet, infographic or otherwise, it's probably not a good choice either.
+
+The plots must be reproducible. Provide the data as well as the code to reporduce them. The plots should also be saved as individual images (pdf or png).
+
+Under each plot, here in the RMarkdown, briefly explain what types of analysis the plot is suitable for, what elements of the results the plot attempts to clearly convey. For the bad plot, do the opposite: emphasise what features of the results the plot obscures or makes unclear. In doing so, communicate to me that you understand what makes a good plot to convey the results of quantiative analyses to viewers.
+
+Consider making use of the many extensions to ggplot2, e.g.:
+
+- https://r-graph-gallery.com
+- https://krzjoa.github.io/awesome-r-dataviz/#/
+- ggdist https://mjskay.github.io/ggdist/
+- ggrepel
+- ggpubr
+- see
+- ggsignif
+- and others: https://exts.ggplot2.tidyverse.org/gallery/
+
+
+# Get Data
+
+```{r}
+#Getting the Data - chosed the combined Sheet 
+Sova_Main1 <- read.xlsx("data/Sova Mains.xlsx", 
+    sheet = 1)|>
+  select(-Note)
+
+Sova_Main2 <- read.xlsx("data/Sova Mains.xlsx", 
+    sheet = 2)|>
+  select(-Note)
+
+
+
+Sova_Data <- full_join(Sova_Main1, Sova_Main2) |>
+  janitor::clean_names()|>
+  select("id", "assists", "combat_score")
+```
+
+# T-test
+
+I wanted to see if the differences were significant. They are not!
+
+```{r}
+library(report)
+
+t_test_combatscore <- t.test(combat_score ~ id, data = Sova_Data)
+print(t_test_combatscore)
+report(t_test_combatscore)
+
+t_test_assists <- t.test(assists ~ id, data = Sova_Data)
+print(t_test_assists)
+report(t_test_assists)
+
+```
+
+# Plots
+
+## Information and Context
+You can skip it, because it only provides context.:'D
+
+I have two friends who play the same agent (Sova) in Valorant (game), only they are in totally different elos (bottom 40% vs. top 5%). It is clear who plays better, but I want to find out who plays the agent better in their own elo (relative to people in the same elo). Additionally, I want to find out which of the two plays the agent *more* teamoriented. (Sova is categorized as an Iniator, an explanation would be much, but he's supposed to help his teammates).
+
+My research question and data would fall under silly, but the plots will have value for me and other people. 😊
+  
+  Research question: Who is the better Sova Main?
+  Secondary question: Who scores more assists? Who initiates more?
+
+Thanks to the website "https://tracker.gg/valorant", I was able to collect my friends' match data. The average combat scores and the assists from competitive matches were decisive for me, and I also recorded other information (see tables). I will make screenshots in the data folder so that you can see which data I have written out so that I can keep the player names anonymous.
+
+The Average Combat Score is calculated from the average performance in a game (how much damage, kills, assists, etc.), the assists are also taken into account here in this sense, but are not rated as highly compared to kills. Which is why I want to show them specifically in my plots. Assists illustrate whether you have helped with a kill in some way - with assists I judge whether you play Sova successfully as an initiator ~ teamoriented. (I know this may all sound strange, but it makes oddly good sense.)
+
+The combat score is effectively the most important, but I also want to visualize the assists discreetly.
+Whether the matches were won or lost doesn't matter here (you can be the best player in the match and still lose), because it depends on the whole team and I'm only judging my two friends as Sova Mains here.
+
+Conclusion: funnily enough, the bottom 40% person performs better than the top 5% person as a Sova Main, according to my plot. (According to a T-test, however, the difference is not significant!)
+
+
+## Good Plot
+General information:
+I opted for a raincloud plot because this form of presentation allows me to compare groups/persons with each other and the distribution is displayed simultaneously. I also added boxplots, but only in small size, so that you can determine the median/central tendency. 
+Raincloud plots are beneficial for examining distributions and they provide more transparency of the data than boxplots alone, for example.
+
+(I decided against a scatterplot because I don't think it would be a good representation in my case, as assists do have an impact on the combat score, but it's not huge and wouldn't really help the meaningfulness of the plot. I tried it on a trial basis, but the rainclouds were clearly the better choice).
+
+I have also made the bubble sizes dependent on the assists. Manipulating the size of the bubbles is usually done when you have another variable and want to visualize it. For this plot, it is not important to read out the exact sizes aka number of assists, but to visually capture which of my two friends gets more/less assists.
+What could possibly be seen as a strange form of presentation at first glance is that the bubbles get bigger with fewer assists. In my opinion, this makes it easier to see who has scored fewer/more assists in which matches. Because larger bubbles stand out more among many smaller bubbles than smaller bubbles among many larger bubbles. (And there is less visual overlap and the plot remains interpretable). 
+I got permission from my friends to use their names, but I changed them subtly anyway. I showed the plot to my friends who don't usually deal with plots or anything like that and they could understand it. I consider it a successful plot. :)
+
+More detailed information about the code and plot:
+I added the seed in the code again so that it remains reproducible. I chose these two colors (blue, yellow) because you can contrast them well and they can be also distinguish by a colorblind person (I checked), additionally the colours match the agent, so it stays on theme. I chose theme_classic as the beginning theme because it is simple and clear, but I have made further modifications (see in theme()). I moved the title a little further up so it doesn't look like it's on top of the density plot. I opted for a title and subtitle, one is more informative and the other is more eye-catching. I added also a caption, because I made T tests for fun, so I will put this additional information on the plot. The continuous data was plotted on the X-axis because this axis is longer here relative to the Y-axis.
+
+
+```{r}
+
+plot_good <- ggplot(Sova_Data, aes(x = combat_score, y = id)) +
+  theme_classic()+
+  geom_density_ridges(aes(x = combat_score, y = id, fill = id),
+                    alpha = 0.75, scale = 0.5, position = position_nudge(y = 0.3), 
+                    linetype = "blank", bandwidth = 20)+
+  geom_point(aes(color = id, size = assists), 
+           alpha = 0.6, position = position_jitterdodge(jitter.width = 0.3,
+                                                        jitter.height = 10,
+                                                        seed = 23)) + # set seed 
+  geom_boxplot(width = 0.15, alpha = .2,
+               position = position_nudge(y = +.3), outlier.shape = NA,
+  #I didn't want the outliers to be highlighted because outliers make no sense in this context and are not outliers, so to speak
+               color = c("J" = "#000000", "Y" = "#000000"),
+               fill = c("J" = "#054073", "Y" = "#fdb03c")) + 
+  scale_color_manual(values = c("J" = "#054073", "Y" = "#fdb03c")) +
+  scale_fill_manual(values = c("J" = "#054073", "Y" = "#fdb03c")) +
+  labs(title = "Who is The Better Sova Main?",
+       subtitle = "Distribution of Average Combat Score and Assists",
+       x = "Average Combat Score",
+       y = "Sova Main",
+       caption = "There are no significant differences in Average Combat Score and Assists.") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7), 
+                     limits = c(70, 430)) +
+  scale_y_discrete(labels = c("J" = "Jassi", "Y" = "Yanni")) +
+  scale_size(range = c(8,0))  +
+  guides(size = guide_legend(title = "Assists"), 
+         color = "none", fill = "none") + #no need, it is clear on the y-axis
+  theme(text = element_text(face = "plain", colour = "black", family = "sans", size = 10),
+        # for the caption, but it will be override for the other textoptions, so it's fine
+        plot.title = element_text(hjust = 0, face = "bold", family = "sans", size = 14),
+        plot.subtitle = element_text(hjust = 0,  margin = margin(b = 20), face = "plain", family = "sans", size = 12),
+        axis.title = element_text(face = "plain", family = "sans", size = 12),
+        axis.text = element_text(face = "plain", colour = "black", family = "sans", size = 10),
+        axis.ticks.y = element_blank(), #no need 
+        axis.line = element_line(color = "black"),
+        legend.title = element_text(face = "plain", colour = "black", family = "sans", size = 11),
+        legend.text = element_text(face = "plain", colour = "black", family = "sans",size = 10, hjust = 0.75),
+        panel.background = element_blank())
+
+print(plot_good)
+
+```
+
+
+
+## Bad aka not clear Plot
+
+Note: I didn't know exactly what you meant by "bad". There are bad plots that are okay, but difficult to interpret, but theoretically feasible. There are also bad plots that are simply a catastrophe. That's why I've created two variants of bad plots. I had fun. :D
+
+This bad plot is quite similar to the good plot, but the density plots are missing and therefore the general distribution of the avereage combat score is not really visible. The points are below the boxplot, their alpha is set to 1, which means no transparency. The bubbles don’t have a jitter and are too big. The median can theoretically be read off, but the labeling of the x-axis is inadequate. In addition, the numerical data is shown here on the shorter axis. The general labeling of the plot is strange, sometimes things are left-aligned and other things are right-aligned.
+No theme_x was chosen, but the standard is used, but certain aspects have been modified to keep interpretability to a minimum. Everything was written in small letters and everything is in a shade of gray, except for the bubbles in the legend, so that they distract from the actual plot.
+
+The legends are very irritating and 2 of the three are absolutely unnecessary (+ there is a spelling mistake, which is why it became two legends and not one). In addition, the legend is almost or even as big as the plot itself.
+For this plot, I specifically tried to make things bad that are clear and obvious in the good plot. (e.g. the big dots cover up the small dots).
+
+It's a very ugly plot, but you could still read that person "J" scores higher/better (not by how much..., but still something).
+
+
+```{r}
+
+plot_bad <- ggplot(Sova_Data, aes(x = combat_score, y = id)) + 
+  geom_point(alpha = 1, aes(color = id, size = assists)) + 
+  geom_boxplot(alpha = 1, aes(x = combat_score, y = id, fill = id),
+                      width =3, outlier.shape = TRUE, color = "#ffffff") +
+  #this time i enabled the outliers 
+  scale_color_manual(values = c("J" = "#d3d3d3", "Y" = "#c7c7c7"),
+                     name = "sova main") + 
+  scale_fill_manual(values = c("J" = "#d3d3d3", "Y" = "#c7c7c7")) +
+  labs(title = "who is the better \n sova main?",
+       subtitle = "distribution of the average combat score and assists",
+       y = "average combat score",
+       x = "sova main") +
+  scale_size(range = c(4, 25))  + #random size choices
+  scale_x_continuous(breaks = c(100, 400), limits = c(100, 400), labels = c(100, 400)) +
+  guides(size = guide_legend(title = "assists"),
+         fill = guide_legend(title = "sov main")) +
+  theme(title = element_text(face = "italic", colour = "#a3a2a2", family = "mono"),
+        axis.title = element_text(face = "italic", colour = "#c7c7c7", family = "mono"),
+        axis.text = element_text(face = "italic", colour = "#a3a2a2", family = "mono"),
+        axis.text.y = element_text(face = "italic", colour = "#c7c7c7", family = "mono"),
+        legend.text = element_text(face = "italic", colour = "#a3a2a2", family = "mono"),
+        legend.title = element_text(face = "italic", colour = "#ffffff", family = "mono"),
+        panel.background = element_rect(color = "#858383", fill = "#f3f3f3"),
+        panel.grid.major =  element_line(color = "#a3a2a2", linewidth = 2),
+        panel.grid.minor =  element_line(color = "#ffffff", linewidth = 2),
+        legend.background = element_rect( color = "#a3a2a2", fill = "#f3f3f3"),
+        legend.box = "horizontal",
+        axis.title.x = element_text(hjust = 0),
+        axis.title.y = element_text(hjust = 0.25),
+        plot.title = element_text(hjust = 1),
+        legend.position= "left",
+        plot.subtitle =element_text(hjust = 0) )
+
+print(plot_bad)
+
+```
+
+## Bad aka catastrophic Plot
+
+«when more is not better.» This plot makes that clearer than the actual presented data. Font sizes and colors are not well chosen. In general, no harmonizing colors have been chosen. I don't need to comment further on the color choices. The plot is distorted, the legend is almost larger than the plot itself. But it least, this time it has just two legends and not three. In addition to the fact that it is generally not possible to read anything, the scatterplot display format is also not well chosen. The axis labels show negative values, but the selected data cannot become negative in anyway. An unsuitable theme was selected and I modified it in the worst possible way. The bubbles are gigantic. 
+```{r}
+
+plot_cata <- ggplot(Sova_Data, aes(x = combat_score, y = assists, size = assists, color = id)) +
+  geom_point(alpha = 0.55, aes(color = id)) +  
+  scale_color_manual(values = c("J" = "grey", "Y" = "lightgrey"),
+                     name = "Sova Mains")+
+  theme_dark() + #random theme
+  labs(title = "Who is the better Sova Main?",
+       x = "average combat score",
+       y = "assists") +
+  scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(-100, 450)) + #negative values
+  scale_y_continuous(breaks = pretty_breaks(n = 6), limits = c(-10, 20)) +
+  scale_size(range = c(1, 22))  +
+  guides(size = guide_legend(title = "Assists")) +
+  theme(title = element_text(face = "bold", colour = "#99ff99", size = 5),
+        axis.title = element_text(face = "bold", colour = "lightgreen", size = 5),
+        axis.text = element_text(size = 10, face = "bold", colour = "beige"),
+        axis.text.y = element_text(face = "bold", colour = "beige", size = 5),
+        legend.text =  element_text(face = "bold", colour = "skyblue", size = 5),
+        legend.position="bottom",
+        plot.margin = margin(1, 1, 4, 2, "cm"),
+        panel.background = element_rect(fill = "red"),
+        panel.grid.major = element_line(color = "green", linewidth = 0.4),
+        panel.grid.minor = element_line(color = "purple", linewidth = 2),
+        legend.background = element_rect( color = "blue", fill = "yellow"),
+        legend.box = "horizontal",
+        axis.title.x = element_text(hjust = 1),
+        axis.title.y = element_text(hjust = 1),
+        plot.background =element_rect(fill = "#dfe0ed"))
+
+print(plot_cata)
+
+```
+
+
+# Write to disk
+
+Write to disk as a .pdf or .png.
+
+Name them "plot_good_[yourname]" and "plot_bad_[yourname]".
+
+```{r}
+
+# good plot
+ggsave("plots/plot_good_tinapuskaric.png", plot = plot_good, width = 16, height = 10, dpi = 300, device = "png")
+
+ggsave("plots/plot__good_tinapuskaric.pdf", plot = plot_good, width = 16, height = 10, device = "pdf")
+
+
+#bad plot
+ggsave("plots/plot_bad_tinapuskaric.png", plot = plot_bad, width = 16, height = 10, dpi = 300, device = "png")
+
+ggsave("plots/plot_bad_tinapuskaric.pdf", plot = plot_bad, width = 16, height = 10, device = "pdf")
+
+
+#catastrophic plot
+ggsave("plots/plot_catastrophic_tinapuskaric.png", plot = plot_cata, width = 16, height = 10, dpi = 300, device = "png")
+
+ggsave("plots/plot_catastrophic_tinapuskaric.pdf", plot = plot_cata, width = 16, height = 10, device = "pdf")
+
+
+```
+
+# Session info
+
+```{r}
+
+sessionInfo()
+
+```
+
+
