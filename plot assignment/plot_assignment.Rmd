@@ -26,17 +26,12 @@ library(tidyverse)
 library(knitr)
 library(kableExtra)
 library(janitor)
-library(scales)
 library(readr)
 library(openxlsx)
-library("ggExtra")
-library("ggplot2")
-library("viridis") 
-library("ggsci")
-library(ggrepel)
+library(ggExtra)
 library(ggridges)
-library(patchwork)
-
+library(ggplot2)
+library(scales)
 
 ```
 
@@ -74,55 +69,58 @@ Consider making use of the many extensions to ggplot2, e.g.:
 
 # Get Data
 
+I calculated the average assists.
+Rounds = rounds played (a team needs 13 wins to win; the opposing team can also concede; it can also go into overtime)
 ```{r}
-#Getting the Data - chosed the combined Sheet 
+
 Sova_Main1 <- read.xlsx("data/Sova Mains.xlsx", 
-    sheet = 1)|>
-  select(-Note)
+    sheet = 1)
 
 Sova_Main2 <- read.xlsx("data/Sova Mains.xlsx", 
-    sheet = 2)|>
-  select(-Note)
-
-
+    sheet = 2)
 
 Sova_Data <- full_join(Sova_Main1, Sova_Main2) |>
   janitor::clean_names()|>
-  select("id", "assists", "combat_score")
+  select("id", "rounds", "assists", "combatscore")|>
+  rename(average_cs = combatscore)|>
+  mutate("average_assists" = assists/rounds )
+
+
 ```
 
 # T-test
 
-I wanted to see if the differences were significant. They are not!
+I wanted to see if the differences were significant. They are not! 
+(I just put the values into a T-test... Therefore careful :'D but my friends don't know that.)
 
 ```{r}
 library(report)
 
-t_test_combatscore <- t.test(combat_score ~ id, data = Sova_Data)
+t_test_combatscore <- t.test(average_cs ~ id, data = Sova_Data)
 print(t_test_combatscore)
 report(t_test_combatscore)
 
-t_test_assists <- t.test(assists ~ id, data = Sova_Data)
-print(t_test_assists)
-report(t_test_assists)
-
+t_test_a_assists <- t.test(average_assists ~ id, data = Sova_Data)
+print(t_test_a_assists)
+report(t_test_a_assists)
 ```
 
 # Plots
 
 ## Information and Context
-You can skip it, because it only provides context.:'D
+You can skip it, because it only provides context.  :'D
 
-I have two friends who play the same agent (Sova) in Valorant (game), only they are in totally different elos (bottom 40% vs. top 5%). It is clear who plays better, but I want to find out who plays the agent better in their own elo (relative to people in the same elo). Additionally, I want to find out which of the two plays the agent *more* teamoriented. (Sova is categorized as an Iniator, an explanation would be much, but he's supposed to help his teammates).
+I have two friends who play the same agent (Sova) in a game, only they are in totally different elos (bottom 40% vs. top 5%). It is clear who plays better, but I want to find out who plays the agent better in their own elo (relative to people in the same elo). Additionally, I want to find out which of the two plays the agent *more* teamoriented. (Sova is categorized as an Iniator, an explanation would be much, but he's supposed to help his teammates).
 
 My research question and data would fall under silly, but the plots will have value for me and other people. 😊
   
   Research question: Who is the better Sova Main?
+  
   Secondary question: Who scores more assists? Who initiates more?
 
-Thanks to the website "https://tracker.gg/valorant", I was able to collect my friends' match data. The average combat scores and the assists from competitive matches were decisive for me, and I also recorded other information (see tables). I will make screenshots in the data folder so that you can see which data I have written out so that I can keep the player names anonymous.
+Thanks to the website "https://tracker.gg/valorant", I was able to collect my friends' match data. The average combat scores and the assists from competitive matches were importantt for me, and I also recorded other information (see tables).
 
-The Average Combat Score is calculated from the average performance in a game (how much damage, kills, assists, etc.), the assists are also taken into account here in this sense, but are not rated as highly compared to kills. Which is why I want to show them specifically in my plots. Assists illustrate whether you have helped with a kill in some way - with assists I judge whether you play Sova successfully as an initiator ~ teamoriented. (I know this may all sound strange, but it makes oddly good sense.)
+The Average Combat Score is calculated from the average performance in a game (how much damage, kills, assists, etc.), the assists are also taken into account here in this sense, but are not rated as highly compared to kills. Which is why I want to show them specifically in my plots. Assists illustrate whether you have helped with a kill in some way - with assists I judge whether you play Sova successfully as an initiator ~ teamoriented. (I know this may all sound strange, but it makes oddly sense.) I calculated the average assists per round because if you play more rounds, you theoretically have more chances to get assists. 
 
 The combat score is effectively the most important, but I also want to visualize the assists discreetly.
 Whether the matches were won or lost doesn't matter here (you can be the best player in the match and still lose), because it depends on the whole team and I'm only judging my two friends as Sova Mains here.
@@ -142,19 +140,22 @@ What could possibly be seen as a strange form of presentation at first glance is
 I got permission from my friends to use their names, but I changed them subtly anyway. I showed the plot to my friends who don't usually deal with plots or anything like that and they could understand it. I consider it a successful plot. :)
 
 More detailed information about the code and plot:
-I added the seed in the code again so that it remains reproducible. I chose these two colors (blue, yellow) because you can contrast them well and they can be also distinguish by a colorblind person (I checked), additionally the colours match the agent, so it stays on theme. I chose theme_classic as the beginning theme because it is simple and clear, but I have made further modifications (see in theme()). I moved the title a little further up so it doesn't look like it's on top of the density plot. I opted for a title and subtitle, one is more informative and the other is more eye-catching. I added also a caption, because I made T tests for fun, so I will put this additional information on the plot. The continuous data was plotted on the X-axis because this axis is longer here relative to the Y-axis.
+I added the seed in the code again so that it remains reproducible. I chose these two colors (blue, yellow) because you can contrast them well and they can be also distinguish by a colorblind person (I checked), additionally the colours match the agent, so it stays on theme. I chose theme_classic as the beginning theme because it is simple and clear, but I have made further modifications (see in theme()). I moved the title a little further up so it doesn't look like it's on top of the density plot. I opted for a title and subtitle, one is more informative and the other is more eye-catching. I added also a caption, because I made T tests for fun, so I will put this additional information on the plot.(Even if they are silly dates)  The continuous data was plotted on the X-axis because this axis is longer here relative to the Y-axis.
+I was thinking about removing the leading zero in the legend, but then I read that this is usual if the value cannot go above one. In my case it doesn't go above one, but it would theoretically be possible to have five times the assists as rounds played. That's why I leave the leading zero in the legend. 
+Some overlaps are unavoidable, but the bubbles are partially transparent, which is why you can still identify the bubbles.
 
 
 ```{r}
 
-plot_good <- ggplot(Sova_Data, aes(x = combat_score, y = id)) +
+plot_good <- ggplot(Sova_Data, aes(x = average_cs, y = id)) +
   theme_classic()+
-  geom_density_ridges(aes(x = combat_score, y = id, fill = id),
+  geom_density_ridges(aes(x = average_cs, y = id, fill = id),
                     alpha = 0.75, scale = 0.5, position = position_nudge(y = 0.3), 
                     linetype = "blank", bandwidth = 20)+
-  geom_point(aes(color = id, size = assists), 
-           alpha = 0.6, position = position_jitterdodge(jitter.width = 0.3,
-                                                        jitter.height = 10,
+  geom_point(aes(color = id, size = average_assists), 
+           alpha = 0.6, position =  position_jitterdodge(jitter.width = 0.3,
+                                                        jitter.height = 0.3,
+                                                        dodge.width = 0.3,
                                                         seed = 23)) + # set seed 
   geom_boxplot(width = 0.15, alpha = .2,
                position = position_nudge(y = +.3), outlier.shape = NA,
@@ -171,24 +172,25 @@ plot_good <- ggplot(Sova_Data, aes(x = combat_score, y = id)) +
   scale_x_continuous(breaks = pretty_breaks(n = 7), 
                      limits = c(70, 430)) +
   scale_y_discrete(labels = c("J" = "Jassi", "Y" = "Yanni")) +
-  scale_size(range = c(8,0))  +
-  guides(size = guide_legend(title = "Assists"), 
+  scale_size(range = c(7,0))  +
+  guides(size = guide_legend(title = "Average Assists"), 
          color = "none", fill = "none") + #no need, it is clear on the y-axis
-  theme(text = element_text(face = "plain", colour = "black", family = "sans", size = 10),
+  theme(text = element_text(face = "plain", colour = "black", family = "sans", size = 12),
         # for the caption, but it will be override for the other textoptions, so it's fine
-        plot.title = element_text(hjust = 0, face = "bold", family = "sans", size = 14),
-        plot.subtitle = element_text(hjust = 0,  margin = margin(b = 20), face = "plain", family = "sans", size = 12),
-        axis.title = element_text(face = "plain", family = "sans", size = 12),
-        axis.text = element_text(face = "plain", colour = "black", family = "sans", size = 10),
+        plot.title = element_text(hjust = 0, face = "bold", family = "sans", size = 16),
+        plot.subtitle = element_text(hjust = 0,  margin = margin(b = 20), face = "plain", family = "sans", size = 14),
+        axis.title = element_text(face = "plain", family = "sans", size = 14),
+        axis.text = element_text(face = "plain", colour = "black", family = "sans", size = 12),
         axis.ticks.y = element_blank(), #no need 
         axis.line = element_line(color = "black"),
-        legend.title = element_text(face = "plain", colour = "black", family = "sans", size = 11),
+        legend.title = element_text(face = "plain", colour = "black", family = "sans", size = 12),
         legend.text = element_text(face = "plain", colour = "black", family = "sans",size = 10, hjust = 0.75),
         panel.background = element_blank())
 
 print(plot_good)
 
 ```
+
 
 
 
@@ -207,9 +209,9 @@ It's a very ugly plot, but you could still read that person "J" scores higher/be
 
 ```{r}
 
-plot_bad <- ggplot(Sova_Data, aes(x = combat_score, y = id)) + 
-  geom_point(alpha = 1, aes(color = id, size = assists)) + 
-  geom_boxplot(alpha = 1, aes(x = combat_score, y = id, fill = id),
+plot_bad <- ggplot(Sova_Data, aes(x = average_cs, y = id)) + 
+  geom_point(alpha = 1, aes(color = id, size = average_assists)) + 
+  geom_boxplot(alpha = 1, aes(x = average_cs, y = id, fill = id),
                       width =3, outlier.shape = TRUE, color = "#ffffff") +
   #this time i enabled the outliers 
   scale_color_manual(values = c("J" = "#d3d3d3", "Y" = "#c7c7c7"),
@@ -221,7 +223,7 @@ plot_bad <- ggplot(Sova_Data, aes(x = combat_score, y = id)) +
        x = "sova main") +
   scale_size(range = c(4, 25))  + #random size choices
   scale_x_continuous(breaks = c(100, 400), limits = c(100, 400), labels = c(100, 400)) +
-  guides(size = guide_legend(title = "assists"),
+  guides(size = guide_legend(title = "average assists"),
          fill = guide_legend(title = "sov main")) +
   theme(title = element_text(face = "italic", colour = "#a3a2a2", family = "mono"),
         axis.title = element_text(face = "italic", colour = "#c7c7c7", family = "mono"),
@@ -244,23 +246,28 @@ print(plot_bad)
 
 ```
 
+
+
+
 ## Bad aka catastrophic Plot
 
-«when more is not better.» This plot makes that clearer than the actual presented data. Font sizes and colors are not well chosen. In general, no harmonizing colors have been chosen. I don't need to comment further on the color choices. The plot is distorted, the legend is almost larger than the plot itself. But it least, this time it has just two legends and not three. In addition to the fact that it is generally not possible to read anything, the scatterplot display format is also not well chosen. The axis labels show negative values, but the selected data cannot become negative in anyway. An unsuitable theme was selected and I modified it in the worst possible way. The bubbles are gigantic. 
+«when more is not better.» This plot makes that clearer than the actual presented data. Font sizes and colors are not well chosen. In general, no harmonizing colours have been chosen. I don't need to comment further on the colour choices. The plot is distorted, the legend is almost larger than the plot itself (at least in R as Output and in HTML). But it least, this time it has just two legends and not three. In addition to the fact that it is generally not possible to read anything, the scatterplot display format is also not well chosen. The axis labels show negative values, but the selected data cannot become negative in anyway. An unsuitable theme was selected and I modified it in the worst possible way. The bubbles are gigantic.
+
+
 ```{r}
 
-plot_cata <- ggplot(Sova_Data, aes(x = combat_score, y = assists, size = assists, color = id)) +
+plot_cata <- ggplot(Sova_Data, aes(x = average_cs, y = average_assists, size = average_assists, color = id)) +
   geom_point(alpha = 0.55, aes(color = id)) +  
   scale_color_manual(values = c("J" = "grey", "Y" = "lightgrey"),
                      name = "Sova Mains")+
   theme_dark() + #random theme
   labs(title = "Who is the better Sova Main?",
        x = "average combat score",
-       y = "assists") +
+       y = "average assists") +
   scale_x_continuous(breaks = pretty_breaks(n = 6), limits = c(-100, 450)) + #negative values
-  scale_y_continuous(breaks = pretty_breaks(n = 6), limits = c(-10, 20)) +
-  scale_size(range = c(1, 22))  +
-  guides(size = guide_legend(title = "Assists")) +
+  scale_y_continuous(breaks = pretty_breaks(n = 6), limits = c(-1, 2)) +
+  scale_size(range = c(1, 18))  +
+  guides(size = guide_legend(title = "average assists")) +
   theme(title = element_text(face = "bold", colour = "#99ff99", size = 5),
         axis.title = element_text(face = "bold", colour = "lightgreen", size = 5),
         axis.text = element_text(size = 10, face = "bold", colour = "beige"),
@@ -281,7 +288,6 @@ print(plot_cata)
 
 ```
 
-
 # Write to disk
 
 Write to disk as a .pdf or .png.
@@ -291,21 +297,21 @@ Name them "plot_good_[yourname]" and "plot_bad_[yourname]".
 ```{r}
 
 # good plot
-ggsave("plots/plot_good_tinapuskaric.png", plot = plot_good, width = 16, height = 10, dpi = 300, device = "png")
+ggsave("plots/plot_good_tinapuskaric.png", plot = plot_good, width = 10, height = 7, dpi = 300, device = "png")
 
-ggsave("plots/plot__good_tinapuskaric.pdf", plot = plot_good, width = 16, height = 10, device = "pdf")
+ggsave("plots/plot_good_tinapuskaric.pdf", plot = plot_good, width = 10, height = 7, device = "pdf")
 
 
 #bad plot
-ggsave("plots/plot_bad_tinapuskaric.png", plot = plot_bad, width = 16, height = 10, dpi = 300, device = "png")
+ggsave("plots/plot_bad_tinapuskaric.png", plot = plot_bad, width = 10, height = 8, dpi = 300, device = "png")
 
-ggsave("plots/plot_bad_tinapuskaric.pdf", plot = plot_bad, width = 16, height = 10, device = "pdf")
+ggsave("plots/plot_bad_tinapuskaric.pdf", plot = plot_bad, width = 10, height = 8, device = "pdf")
 
 
 #catastrophic plot
-ggsave("plots/plot_catastrophic_tinapuskaric.png", plot = plot_cata, width = 16, height = 10, dpi = 300, device = "png")
+ggsave("plots/plot_catastrophic_tinapuskaric.png", plot = plot_cata, dpi = 300, device = "png")
 
-ggsave("plots/plot_catastrophic_tinapuskaric.pdf", plot = plot_cata, width = 16, height = 10, device = "pdf")
+ggsave("plots/plot_catastrophic_tinapuskaric.pdf", plot = plot_cata, device = "pdf")
 
 
 ```
